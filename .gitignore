@@ -1,0 +1,16 @@
+# Copia empaquetada, no hace falta versionarla.
+greyspaces-ar.zip
+
+# Enlace local con el proyecto de Vercel y salidas de trabajo.
+.vercel/
+URL-PUBLICADA.txt
+
+# macOS
+.DS_Store
+._*
+
+# node, por si algun dia hay herramientas
+node_modules/
+
+# vendor/ SI se versiona a proposito: three.js y MindAR viajan con la obra
+# para que en sala no dependa de ningun CDN.

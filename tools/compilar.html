@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Compilar targets.mind — GREY SPACES</title>
+<style>
+  body { font: 14px/1.6 system-ui, sans-serif; background:#0b0d0f; color:#c9ced2;
+         margin:0; padding:32px; }
+  h1 { font-size:18px; font-weight:400; letter-spacing:.1em; color:#fff; }
+  .caja { max-width:640px; }
+  input[type=file] { margin:14px 0; color:#c9ced2; }
+  button { padding:10px 16px; background:transparent; color:#fff;
+           border:1px solid #3de8a0; font:inherit; cursor:pointer; }
+  button:disabled { opacity:.5; border-color:#333; cursor:default; }
+  #log { white-space:pre-wrap; margin-top:18px; font-family:ui-monospace,monospace;
+         font-size:12px; color:#8f979d; }
+  ol { color:#a8afb5; }
+</style>
+</head>
+<body>
+<div class="caja">
+  <h1>Compilar targets.mind</h1>
+  <p>Genera el archivo de seguimiento a partir de las cartelas. Se ejecuta entero
+     en el navegador, no sube nada a ningún sitio.</p>
+  <ol>
+    <li>Elige las imágenes de <code>targets/compilar/</code> <strong>en orden
+        alfabético</strong> (A, B, C, D). Ese orden tiene que coincidir con el
+        array <code>MARCADORES</code> de <code>js/config.js</code>.</li>
+    <li>Pulsa compilar y espera.</li>
+    <li>Guarda el archivo resultante como <code>targets/targets.mind</code>.</li>
+  </ol>
+  <input type="file" id="ficheros" accept="image/*" multiple>
+  <br>
+  <button id="ir" disabled>Compilar</button>
+  <div id="log"></div>
+</div>
+
+<script type="module">
+import { Compiler } from '../vendor/mindar/mindar-image.prod.js';
+
+const log = (m) => { document.querySelector('#log').textContent += m + '\n'; };
+const ficheros = document.querySelector('#ficheros');
+const ir = document.querySelector('#ir');
+let imagenes = [];
+
+async function cargar(file) {
+  return new Promise((res, rej) => {
+    const img = new Image();
+    img.onload = () => res(img);
+    img.onerror = rej;
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+ficheros.addEventListener('change', async () => {
+  const files = [...ficheros.files].sort((a, b) => a.name.localeCompare(b.name));
+  imagenes = [];
+  for (const f of files) {
+    const img = await cargar(f);
+    imagenes.push(img);
+    log(`${f.name}  ${img.width}x${img.height}`);
+  }
+  ir.disabled = imagenes.length === 0;
+});
+
+ir.addEventListener('click', () => compilar(imagenes));
+
+async function compilar(imgs) {
+  ir.disabled = true;
+  const compiler = new Compiler();
+  const t0 = performance.now();
+  await compiler.compileImageTargets(imgs, (p) => {
+    if (Math.round(p) % 10 === 0) log(`  ${Math.round(p)} %`);
+  });
+  const buffer = await compiler.exportData();
+  log(`listo en ${((performance.now() - t0) / 1000).toFixed(1)} s · ` +
+      `${(buffer.byteLength / 1024).toFixed(0)} KB`);
+  const url = URL.createObjectURL(new Blob([buffer]));
+  const a = document.createElement('a');
+  a.href = url; a.download = 'targets.mind'; a.textContent = 'Descargar targets.mind';
+  a.style.cssText = 'display:block;margin-top:14px;color:#3de8a0';
+  document.querySelector('.caja').appendChild(a);
+  window.__mind = buffer;
+  window.__hecho = true;
+}
+
+window.__compilarDesdeRutas = async (rutas) => {
+  const imgs = [];
+  for (const r of rutas) {
+    const img = new Image();
+    await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = r; });
+    imgs.push(img);
+    log(`${r}  ${img.width}x${img.height}`);
+  }
+  await compilar(imgs);
+};
+</script>
+</body>
+</html>

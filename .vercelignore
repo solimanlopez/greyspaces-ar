@@ -1,0 +1,10 @@
+# Lo que no hace falta que viaje al servidor.
+greyspaces-ar.zip
+ABRIR.command
+.DS_Store
+URL-PUBLICADA.txt
+PUBLICAR.command
+SUBIR-A-GITHUB.command
+GUARDAR-CAMBIOS.command
+.git
+.gitignore

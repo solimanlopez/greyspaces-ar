@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GREY SPACES · AR — inicio</title>
+<link rel="stylesheet" href="css/app.css">
+<style>
+  body { display: block; overflow-y: auto; }
+  .hoja { max-width: 780px; margin: 0 auto; padding: 46px 24px 70px; }
+
+  .marca {
+    display: flex; align-items: center; gap: 13px;
+    font-size: 11px; letter-spacing: .22em; text-transform: uppercase;
+    color: var(--gris-tenue);
+  }
+  .marca .claim { width: 4px; height: 17px; background: var(--campo); }
+
+  h1 {
+    margin: 16px 0 6px; font-size: clamp(30px, 6vw, 46px); font-weight: 300;
+    letter-spacing: .04em; color: #fff;
+  }
+  .sub { margin: 0 0 34px; font-size: 15px; color: var(--gris-tenue); }
+
+  .rejilla { display: grid; gap: 1px; background: var(--linea); border: 1px solid var(--linea); }
+  a.opcion {
+    display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 18px;
+    padding: 20px 22px; background: var(--fondo);
+    color: inherit; text-decoration: none;
+    transition: background .18s ease;
+  }
+  a.opcion:hover, a.opcion:focus-visible { background: #12171a; outline: 0; }
+  a.opcion:focus-visible { box-shadow: inset 3px 0 0 var(--campo); }
+  a.opcion .t { font-size: 18px; color: #fff; }
+  a.opcion .d {
+    grid-column: 1; font-size: 14px; line-height: 1.55; color: var(--gris-tenue);
+    max-width: 56ch;
+  }
+  a.opcion .flecha { grid-row: 1 / span 2; color: var(--campo); font-size: 20px; }
+  a.opcion.principal { box-shadow: inset 3px 0 0 var(--campo); }
+  a.opcion.principal .t { font-weight: 400; }
+
+  h2 {
+    margin: 44px 0 14px; font-size: 12px; letter-spacing: .2em;
+    text-transform: uppercase; color: var(--campo); font-weight: 400;
+  }
+  .nota { font-size: 14px; line-height: 1.65; color: #b3bbc1; max-width: 62ch; }
+  .nota + .nota { margin-top: 12px; }
+  .nota code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: .88em;
+    color: var(--cobre);
+  }
+  .pie-inicio {
+    margin-top: 44px; padding-top: 18px; border-top: 1px solid var(--linea);
+    font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+    color: var(--gris-tenue);
+  }
+</style>
+</head>
+<body>
+<div class="hoja">
+
+  <div class="marca"><span class="claim"></span><span>IRIDIA · SLStudio</span></div>
+  <h1>GREY SPACES · AR</h1>
+  <p class="sub">Servidor local en marcha. Elige qué quieres abrir.</p>
+
+  <div class="rejilla">
+
+    <a class="opcion principal" href="index.html?mesa=1">
+      <span class="t">Prueba de mesa, con la webcam</span>
+      <span class="flecha">→</span>
+      <span class="d">La obra encogida sobre la cartela, para verla aquí mismo sin la
+        instalación delante. Abre <code>targets/imprimir/marcador-A.png</code> en el
+        móvil o imprímela y ponla frente a la cámara del ordenador.</span>
+    </a>
+
+    <a class="opcion" href="index.html?previa=1">
+      <span class="t">Vista previa, sin cámara</span>
+      <span class="flecha">→</span>
+      <span class="d">La escena a tamaño real con órbita de ratón. Lo más rápido para
+        juzgar el campo, la onda y el asteroide.</span>
+    </a>
+
+    <a class="opcion" href="index.html">
+      <span class="t">Realidad aumentada en sala</span>
+      <span class="flecha">→</span>
+      <span class="d">El modo definitivo, a escala real. Aquí la obra aparece donde
+        dicen las medidas de <code>js/config.js</code>, no encima del marcador.</span>
+    </a>
+
+    <a class="opcion" href="index.html?calibrar=1&amp;capas=guia,campoCercano,estacionaria,radiacion,paquete,psyche">
+      <span class="t">Calibración de marcadores</span>
+      <span class="flecha">→</span>
+      <span class="d">Con la guía de encaje encendida. Mueve cada cartela hasta que el
+        alambre se pegue al cobre real y copia el resultado.</span>
+    </a>
+
+    <a class="opcion" href="guia-ar.html">
+      <span class="t">Guía de montaje</span>
+      <span class="flecha">→</span>
+      <span class="d">El protocolo completo: dónde va cada cartela, tamaños de
+        impresión, calibración y publicación.</span>
+    </a>
+
+    <a class="opcion" href="targets/imprimir/">
+      <span class="t">Cartelas para imprimir</span>
+      <span class="flecha">→</span>
+      <span class="d">Las cuatro a 300 ppp, A4 apaisado, listas para imprenta.</span>
+    </a>
+
+    <a class="opcion" href="tools/compilar.html">
+      <span class="t">Recompilar targets.mind</span>
+      <span class="flecha">→</span>
+      <span class="d">Solo si cambias el diseño de las cartelas. Se ejecuta entero en
+        este navegador, no sube nada.</span>
+    </a>
+
+  </div>
+
+  <h2>Sobre la prueba de mesa</h2>
+  <p class="nota">
+    En sala la obra mide 3,6 m y aparece a un metro largo del marcador, que es donde
+    están los tubos. Sobre una mesa eso no se ve. El modo mesa pone el origen de la
+    obra en el propio marcador y la encoge a un palmo, así que aparece flotando sobre
+    la cartela. Si la quieres algo mayor, cambia el número: <code>?mesa=0.30</code>.
+  </p>
+  <p class="nota">
+    Si enseñas la cartela en la pantalla del móvil, baja el brillo un poco y evita
+    que le dé un reflejo directo. El seguimiento agradece el mate.
+  </p>
+
+  <h2>Para parar</h2>
+  <p class="nota">
+    Cierra la ventana negra de Terminal que se abrió al arrancar, o pulsa
+    Ctrl+C dentro de ella. Esta página deja de estar disponible en ese momento.
+  </p>
+
+  <div class="pie-inicio">IRIDIA · SLStudio · Solimán López</div>
+
+</div>
+</body>
+</html>

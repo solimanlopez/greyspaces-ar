@@ -1,0 +1,225 @@
+/* Lato autoalojada: en sala no se puede depender de que haya red buena.
+   Es la misma tipografía que llevan pegada los bloques de la instalación. */
+@font-face {
+  font-family: 'Lato'; font-style: normal; font-weight: 300; font-display: swap;
+  src: url('fuentes/lato-latin-300-normal.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'Lato'; font-style: normal; font-weight: 400; font-display: swap;
+  src: url('fuentes/lato-latin-400-normal.woff2') format('woff2');
+}
+
+/* GREY SPACES · AR — superposición
+   Gris de la pieza, cobre de los tubos, frío de la señal. */
+
+:root {
+  --fondo: #0b0d0f;
+  --gris: #babfc4;
+  --gris-tenue: rgba(186, 191, 196, 0.55);
+  --cobre: #d08b4f;
+  --campo: #3de8a0;   /* el verde de IRIDIA */
+  --claiming: #ff4d3d;
+  --linea: rgba(186, 191, 196, 0.16);
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0; padding: 0; height: 100%;
+  background: var(--fondo);
+  color: var(--gris);
+  font-family: Lato, "Helvetica Neue", Arial, sans-serif;
+  font-weight: 300;
+  -webkit-font-smoothing: antialiased;
+  overscroll-behavior: none;
+  touch-action: manipulation;
+}
+
+#ar {
+  position: fixed; inset: 0;
+  width: 100%; height: 100%;
+  overflow: hidden;
+}
+#ar video, #ar canvas { object-fit: cover; }
+
+/* ---------- Portada ---------- */
+#portada {
+  position: fixed; inset: 0; z-index: 40;
+  display: grid; place-items: center;
+  padding: calc(24px + var(--safe-t)) 24px calc(24px + var(--safe-b));
+  background:
+    radial-gradient(120% 90% at 50% 0%, #14181c 0%, var(--fondo) 62%);
+  transition: opacity .55s ease, visibility .55s;
+}
+#portada.fuera { opacity: 0; visibility: hidden; pointer-events: none; }
+
+.marco {
+  width: 100%; max-width: 420px;
+  border: 1px solid var(--linea);
+  padding: 30px 26px 28px;
+}
+
+/* Las barras del Tratado, sin letras. */
+.barras { display: grid; gap: 5px; margin-bottom: 26px; }
+.barras i {
+  display: block; height: 5px; width: var(--w);
+  background: var(--gris); opacity: .30;
+}
+.barras i:nth-child(4) { background: var(--claiming); opacity: .85; }
+
+h1 {
+  margin: 0 0 6px; font-size: 30px; font-weight: 300;
+  letter-spacing: .22em; color: #fff;
+}
+#subtitulo {
+  margin: 0 0 20px; font-size: 12px; letter-spacing: .14em;
+  text-transform: uppercase; color: var(--gris-tenue);
+}
+.cuerpo { margin: 0 0 26px; font-size: 15px; line-height: 1.62; color: #cfd4d8; }
+
+#btn-entrar {
+  width: 100%; padding: 15px 18px;
+  background: transparent; color: #fff;
+  border: 1px solid var(--campo);
+  font: inherit; font-size: 14px; letter-spacing: .16em; text-transform: uppercase;
+  cursor: pointer; transition: background .2s ease, color .2s ease;
+}
+#btn-entrar:hover:not(:disabled) { background: var(--campo); color: #052014; }
+#btn-entrar:disabled { opacity: .55; cursor: default; border-color: var(--linea); }
+
+.pista { margin: 14px 0 0; font-size: 12px; color: var(--gris-tenue); text-align: center; }
+
+#error {
+  margin: 16px 0 0; font-size: 13px; line-height: 1.5;
+  color: var(--claiming); display: none;
+}
+#error.visible { display: block; }
+
+/* ---------- Estado del anclaje ---------- */
+.estado {
+  position: fixed; z-index: 20;
+  top: calc(14px + var(--safe-t)); left: 14px;
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 9px 14px;
+  background: rgba(8, 10, 12, .62);
+  backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
+  border: 1px solid var(--linea);
+  font-size: 12px; letter-spacing: .06em; color: #dfe3e6;
+  transition: opacity .4s ease;
+}
+.estado .punto {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--gris-tenue);
+  box-shadow: 0 0 0 0 currentColor;
+}
+.estado.buscando .punto { background: var(--gris-tenue); animation: latir 1.6s infinite; }
+.estado.ok .punto { background: var(--campo); }
+.estado.reten .punto { background: var(--cobre); animation: latir 1s infinite; }
+@keyframes latir { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
+
+/* ---------- Capas ---------- */
+#btn-capas {
+  position: fixed; z-index: 20;
+  top: calc(14px + var(--safe-t)); right: 14px;
+  padding: 9px 14px;
+  background: rgba(8, 10, 12, .62);
+  backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
+  border: 1px solid var(--linea); color: #dfe3e6;
+  font: inherit; font-size: 12px; letter-spacing: .1em; cursor: pointer;
+}
+#capas {
+  position: fixed; z-index: 20;
+  top: calc(56px + var(--safe-t)); right: 14px;
+  display: grid; gap: 1px;
+  opacity: 0; visibility: hidden; transform: translateY(-6px);
+  transition: opacity .25s ease, transform .25s ease, visibility .25s;
+}
+#capas.abierto { opacity: 1; visibility: visible; transform: none; }
+.capa {
+  padding: 9px 14px; min-width: 168px; text-align: left;
+  background: rgba(8, 10, 12, .72);
+  backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
+  border: 1px solid var(--linea); border-bottom: 0;
+  color: var(--gris-tenue); font: inherit; font-size: 12px; letter-spacing: .05em;
+  cursor: pointer;
+}
+#capas .capa:last-child { border-bottom: 1px solid var(--linea); }
+.capa.on { color: #fff; box-shadow: inset 2px 0 0 var(--campo); }
+
+/* ---------- Pie ---------- */
+#pie {
+  position: fixed; z-index: 20;
+  left: 0; right: 0; bottom: calc(14px + var(--safe-b));
+  display: grid; justify-items: center; gap: 3px;
+  padding: 0 16px; pointer-events: none;
+  opacity: 0; transition: opacity .35s ease;
+}
+#pie.visible { opacity: 1; }
+#pie-frec { font-size: 11px; letter-spacing: .18em; color: var(--gris-tenue); text-transform: uppercase; }
+#pie-dato {
+  font-weight: 300; font-size: 17px; letter-spacing: .04em; color: #fff;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, .75);
+}
+
+/* ---------- Aviso ---------- */
+#aviso {
+  position: fixed; z-index: 30;
+  left: 50%; bottom: calc(78px + var(--safe-b));
+  transform: translate(-50%, 8px);
+  padding: 11px 18px; max-width: 88vw;
+  background: rgba(8, 10, 12, .86);
+  border: 1px solid var(--linea);
+  font-size: 13px; color: #e7eaec; text-align: center;
+  opacity: 0; visibility: hidden;
+  transition: opacity .3s ease, transform .3s ease, visibility .3s;
+}
+#aviso.visible { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+
+/* ---------- Calibración ---------- */
+#calibrar {
+  position: fixed; z-index: 35;
+  left: 0; right: 0; bottom: 0;
+  max-height: 74vh; overflow: auto;
+  padding: 16px 16px calc(20px + var(--safe-b));
+  background: rgba(8, 10, 12, .93);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid var(--linea);
+  transform: translateY(101%);
+  transition: transform .35s cubic-bezier(.22, .8, .3, 1);
+}
+#calibrar.abierto { transform: none; }
+#calibrar header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 14px; font-size: 13px; letter-spacing: .1em; color: #fff;
+}
+#cal-cerrar {
+  background: none; border: 1px solid var(--linea); color: var(--gris-tenue);
+  font: inherit; font-size: 11px; padding: 5px 10px; cursor: pointer;
+}
+#cal-marcador {
+  width: 100%; margin-bottom: 14px; padding: 10px;
+  background: #12161a; color: #fff; border: 1px solid var(--linea);
+  font: inherit; font-size: 13px;
+}
+.cal-fila {
+  display: grid; grid-template-columns: 1fr auto; align-items: center;
+  gap: 4px 10px; margin-bottom: 10px; font-size: 12px; color: var(--gris-tenue);
+}
+.cal-fila input { grid-column: 1 / -1; width: 100%; accent-color: var(--campo); }
+.cal-fila output { font-variant-numeric: tabular-nums; color: #fff; }
+.cal-nota { font-size: 11px; line-height: 1.5; color: var(--gris-tenue); margin: 4px 0 12px; }
+.cal-nota em { color: var(--campo); font-style: normal; }
+#cal-copiar {
+  width: 100%; padding: 12px; background: transparent; color: #fff;
+  border: 1px solid var(--campo); font: inherit; font-size: 12px;
+  letter-spacing: .14em; text-transform: uppercase; cursor: pointer;
+}
+
+/* En previa no hace falta el indicador de anclaje. */
+body.previa .estado { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+}

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0d0f">
+<meta name="description" content="GREY SPACES — la radiofrecuencia y el asteroide 16 Psyche, superpuestos a la instalación.">
+<title>GREY SPACES · AR</title>
+<link rel="preload" href="css/fuentes/lato-latin-300-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="css/app.css">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/three.module.js",
+    "three/addons/": "./vendor/three/addons/",
+    "mindar-image-three": "./vendor/mindar/mindar-image-three.prod.js"
+  }
+}
+</script>
+</head>
+<body>
+
+<div id="ar"></div>
+
+<!-- Portada ------------------------------------------------------------- -->
+<section id="portada">
+  <div class="marco">
+    <div class="barras" aria-hidden="true">
+      <i style="--w:74%"></i><i style="--w:48%"></i><i style="--w:91%"></i>
+      <i style="--w:36%"></i><i style="--w:63%"></i><i style="--w:82%"></i>
+      <i style="--w:29%"></i><i style="--w:57%"></i>
+    </div>
+    <h1 id="titulo">GREY SPACES</h1>
+    <p id="subtitulo"></p>
+    <p class="cuerpo">
+      Por los dos tubos de cobre circula una señal que no se ve. Esta aplicación
+      la devuelve al espacio: el campo alrededor de la línea, el pulso recorriendo
+      los diez hitos de distancia hasta 16 Psyche, y el asteroide flotando en el
+      centro de la obra.
+    </p>
+    <button id="btn-entrar">Ver la obra</button>
+    <p class="pista">Apunta con la cámara a cualquiera de las cartelas de sala.</p>
+    <p id="error"></p>
+  </div>
+</section>
+
+<!-- Superposición ------------------------------------------------------- -->
+<div id="estado" class="estado buscando">
+  <span class="punto"></span><span id="estado-texto">Buscando</span>
+</div>
+
+<button id="btn-capas" aria-label="Capas">capas</button>
+<div id="capas"></div>
+
+<div id="pie">
+  <span id="pie-frec"></span>
+  <strong id="pie-dato"></strong>
+</div>
+
+<div id="aviso"></div>
+
+<!-- Calibración --------------------------------------------------------- -->
+<div id="calibrar">
+  <header>
+    <strong>Calibración de marcadores</strong>
+    <button id="cal-cerrar" aria-label="Cerrar">cerrar</button>
+  </header>
+  <select id="cal-marcador"></select>
+  <div id="cal-campos"></div>
+  <p class="cal-nota">
+    Enciende la capa <em>Guía de encaje</em> y mueve los valores hasta que el
+    alambre se pegue a los tubos reales. Luego copia y pega en js/config.js.
+  </p>
+  <button id="cal-copiar">Copiar calibración</button>
+</div>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
