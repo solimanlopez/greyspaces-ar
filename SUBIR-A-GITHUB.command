@@ -41,8 +41,8 @@ if command -v gh >/dev/null 2>&1; then
     printf '  Entrando en GitHub.\n\n'
     gh auth login || { read -r -p '  Pulsa Intro para cerrar. '; exit 1; }
   fi
-  printf '  Creando el repositorio publico %s\n\n' "$NOMBRE"
-  gh repo create "$NOMBRE" --public --source=. --remote=origin --push --description "$DESC" && {
+  printf '  Creando el repositorio privado %s\n\n' "$NOMBRE"
+  gh repo create "$NOMBRE" --private --source=. --remote=origin --push --description "$DESC" && {
     printf '\n  Listo. Repositorio creado y subido.\n'
     printf '  Ahora conectalo en Vercel: Add New, Project, Import Git Repository.\n\n'
     gh repo view --web
@@ -51,7 +51,7 @@ else
   printf '  No tienes la herramienta de GitHub instalada. Dos opciones:\n\n'
   printf '  A) Instalarla y volver aqui:   brew install gh\n\n'
   printf '  B) A mano: crea el repositorio %s en github.com/new,\n' "$NOMBRE"
-  printf '     publico y vacio, y luego ejecuta en esta carpeta:\n\n'
+  printf '     privado y vacio, y luego ejecuta en esta carpeta:\n\n'
   printf '       git remote add origin https://github.com/TU-USUARIO/%s.git\n' "$NOMBRE"
   printf '       git push -u origin main\n\n'
 fi

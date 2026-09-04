@@ -17,7 +17,7 @@
   --gris: #babfc4;
   --gris-tenue: rgba(186, 191, 196, 0.55);
   --cobre: #d08b4f;
-  --campo: #3de8a0;   /* el verde de IRIDIA */
+  --campo: #00ff21;   /* el verde de IRIDIA */
   --claiming: #ff4d3d;
   --linea: rgba(186, 191, 196, 0.16);
   --safe-b: env(safe-area-inset-bottom, 0px);
@@ -118,6 +118,21 @@ h1 {
 .estado.ok .punto { background: var(--campo); }
 .estado.reten .punto { background: var(--cobre); animation: latir 1s infinite; }
 @keyframes latir { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
+
+/* ---------- Recolocar (solo modo libre) ---------- */
+#btn-recolocar {
+  position: fixed; z-index: 20; display: none;
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(64px + var(--safe-b));
+  padding: 10px 16px;
+  background: rgba(8, 10, 12, .62);
+  backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
+  border: 1px solid var(--linea); color: var(--gris-tenue);
+  font: inherit; font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
+  cursor: pointer;
+}
+body.libre #btn-recolocar { display: block; }
+.estado.apunta .punto { background: var(--campo); animation: latir 1.1s infinite; }
 
 /* ---------- Capas ---------- */
 #btn-capas {

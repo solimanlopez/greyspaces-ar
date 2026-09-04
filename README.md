@@ -9,33 +9,35 @@ nada. Se entra por un QR en sala.
 
 ---
 
-## Por qué está montado así
+## Cómo se ancla
 
-En 2026 no hay una sola vía de AR en navegador que valga para todo el mundo:
+Una sola cartela emplaza la obra. Después, la pieza se queda quieta y es el
+visitante quien se mueve. Lo que sostiene la obra en su sitio depende de lo
+que sepa hacer el móvil, y en 2026 eso divide el mundo en dos:
 
-- **Android + Chrome** tiene WebXR: SLAM real, la obra se ancla al espacio y
-  puedes caminar libremente.
-- **iPhone + Safari** no expone WebXR. Y 8th Wall, que era la forma de tenerlo
-  igualmente, está cerrando.
+- **Modo libre, Android con Chrome.** WebXR, o sea SLAM de verdad. El
+  visitante centra la retícula en la cruz de la cartela y toca la pantalla. La
+  obra se ancla a ese punto del espacio (`XRAnchor`) y ya puede caminar a lo
+  largo de los tubos, rodear la pieza, agacharse. Sigue ahí. Hay un botón de
+  recolocar por si el primer anclaje no convence.
+- **Modo imagen, iPhone y respaldo.** Safari no expone WebXR. El móvil
+  reconoce la cartela y sostiene la obra mientras la tenga a la vista, y unos
+  ocho segundos después con el giroscopio. Si el visitante camina, se despega.
+- **iPhone en modo libre: Variant Launch.** Inyecta WebXR en Safari vía App
+  Clip. Plan gratuito hasta 3.000 aperturas al mes, sin tarjeta; Basic 99 $/mes
+  por proyecto si se pasa. La integración ya está hecha: pegar la clave del
+  proyecto en `MODO.variantKey` de `js/config.js` y autorizar el dominio en su
+  panel. El código es WebXR estándar, así que es el mismo modo libre.
 
-Como la obra tiene que verla cualquiera que entre en la galería con su móvil,
-la única base común es el **seguimiento por imagen**: unas cartelas impresas de
-las que el móvil deduce dónde está la pieza. Eso trae una limitación honesta:
-mientras no haya ninguna cartela en el encuadre, no hay anclaje. Aquí se
-compensa con tres cosas.
+La app elige sola: si hay WebXR usa el modo libre, si no, imagen. Se puede
+forzar con `?modo=libre` o `?modo=imagen`.
 
-1. **Varias cartelas repartidas alrededor de la pieza.** Cada una sabe dónde
-   está respecto a la obra, así que da igual cuál veas: la obra aparece siempre
-   en el mismo sitio del espacio real. Al rodear la instalación vas pasando de
-   una a otra sin que la obra salte.
-2. **Retención por giroscopio.** Si dejas de ver todas las cartelas, la obra se
-   queda donde estaba durante unos segundos usando el giroscopio del móvil, y
-   luego se desvanece en lugar de desaparecer de golpe.
-3. **Suavizado adaptativo de la pose**, para que no tiemble cuando el visitante
-   está quieto mirando.
+Al anclarse, la obra no aparece de golpe: se dibuja de un extremo al otro de la
+línea con un filo brillante por delante, Psyche crece desde nada, y sale el
+primer pulso. Dura dos segundos y medio.
 
-Todo el código es abierto y se aloja donde quieras. Coste cero, sin plataforma
-de por medio, sin que las imágenes de la obra salgan a ningún servidor ajeno.
+Todo el código es abierto y se aloja donde quieras. Sin plataforma de por
+medio salvo que se active Variant para iPhone.
 
 ---
 
@@ -82,7 +84,8 @@ inicio.html                 página de inicio con todos los modos
 index.html                  la aplicación
 js/config.js                TODO lo que hay que tocar para montarla
 js/main.js                  arranque, modo AR y modo previa
-js/anchoring.js             anclaje multi-marcador, fusión y retención
+js/anchoring.js             modo imagen: anclaje por cartela y retención
+js/xr.js                    modo libre: retícula, colocación y anclas WebXR
 js/rf-field.js              el campo de radiofrecuencia
 js/psyche.js                el asteroide
 js/piece.js                 calco en alambre de tubos y bloques, para calibrar
@@ -95,7 +98,7 @@ targets/compilar/           las mismas a 1024 px, para recompilar si las cambias
 tools/generar-marcadores.py genera las cartelas
 tools/compilar.html         compila targets.mind en local, sin subir nada
 tools/servidor.js           servidor estático, por si no hay python3
-vercel.json                 cabeceras de cache para la publicacion
+vercel.json                 cabeceras de caché para la publicación
 .vercelignore               lo que no viaja al servidor
 models/                     aquí va psyche.glb si quieres el modelo bueno
 ```
@@ -110,58 +113,50 @@ Abre `js/config.js` y rellena el bloque `PIEZA` con las medidas reales, en
 metros: separación entre los ejes de los tubos, radio del tubo, paso entre
 bloques, dimensiones del bloque y voladizo. De ahí sale toda la escala.
 
-### 2. Imprimir las cartelas
+### 2. Imprimir la cartela
 
-En `targets/imprimir/` hay cuatro cartelas a 300 ppp, A4 apaisado.
+En `targets/imprimir/marcador-A.png`, a 300 ppp. **A3 apaisado, mate.** El
+papel brillante refleja los focos y el seguimiento se cae.
 
-**El tamaño impreso manda sobre la distancia de seguimiento.** Regla práctica:
-una cartela se sigue bien hasta unas 6 u 8 veces su anchura.
+En modo imagen una cartela se sigue bien hasta unas 6 u 8 veces su anchura. En
+modo libre solo hace falta verla una vez, pero la retícula tiene que poder
+centrarse en la cruz con comodidad.
 
-| Ancho impreso | Distancia de trabajo |
+| Ancho impreso | Distancia de entrada |
 |---|---|
 | A4, 297 mm | hasta ~2 m |
 | A3, 420 mm | hasta ~3 m |
 | A2, 594 mm | hasta ~4 m |
 
-Si la sala es grande, imprime a A3 o A2 y **anota el ancho real en milímetros**:
-va en `anchoImpreso` de cada marcador.
+Anota el ancho real en milímetros: va en `anchoImpreso`.
 
-Impresión mate. El papel brillante refleja los focos de la galería y el
-seguimiento se pierde justo cuando el visitante se acerca.
+### 3. Colgarla y marcar el suelo
 
-### 3. Colocarlas
+La cartela va en la pared de fondo, centrada sobre el recorrido de los tubos, a
+la altura de la vista. En el suelo, a dos o tres metros de la pared y frente a
+la cartela, una marca: un círculo de vinilo o cinta. Es desde donde el
+visitante apunta y toca; después ya no importa dónde esté.
 
-Cuatro es un buen número para una pieza de tres o cuatro metros:
+Si la sala lo pide se pueden añadir más cartelas al array `MARCADORES`; el
+orden tiene que coincidir con el de compilación de `targets.mind` (A, B, C, D).
 
-- dos en la pared de fondo, a la altura de la vista, hacia los dos tercios del
-  recorrido, separadas entre sí;
-- una tumbada boca arriba sobre una peana o sobre uno de los bloques centrales,
-  que es la que salva las vistas cenitales y de cerca;
-- una en un muro lateral o en la esquina, para cuando el visitante rodea la
-  pieza y pierde de vista las de la pared.
+### 4. Decirle a la app dónde está la cartela
 
-Lo importante es que **desde cualquier punto donde vaya a estar el público haya
-al menos una cartela en el encuadre**. Camina tú el recorrido con el móvil antes
-de abrir.
-
-### 4. Decirle a la app dónde está cada cartela
-
-En `MARCADORES` de `js/config.js`, para cada una:
+En `MARCADORES` de `js/config.js`:
 
 - `anchoImpreso`: el ancho real impreso, en metros.
 - `posicion`: `[x, y, z]` del centro de la cartela, en metros, medidos desde el
   centro del recorrido de los tubos. `+X` a lo largo de los tubos, `+Y` arriba,
-  `+Z` hacia el espectador.
-- `rotacionDeg`: `[0,0,0]` si está plana en la pared de fondo mirando al
-  espectador; `[-90,0,0]` si está tumbada boca arriba; `[0,90,0]` si está en un
-  muro lateral, girada un cuarto de vuelta.
+  `+Z` hacia el espectador. Centrada en la pared de fondo, a 34 cm sobre los
+  tubos y 12 cm por detrás de su eje: `[0, 0.34, -0.12]`.
+- `rotacionDeg`: `[0,0,0]` plana en la pared mirando al espectador;
+  `[-90,0,0]` tumbada boca arriba sobre una peana.
 
-El orden del array tiene que coincidir con el orden alfabético de las imágenes
-con las que se compiló `targets.mind` (A, B, C, D).
+Los mismos números valen para los dos modos.
 
 ### 5. Calibrar con la pieza delante
 
-Abre la app con `?calibrar=1` al final de la URL. Se enciende la capa **guía de
+Abre la app con `?modo=imagen&calibrar=1` al final de la URL. Se enciende la capa **guía de
 encaje**: un calco en alambre de los tubos y los bloques, más un rectángulo rojo
 donde la app cree que está cada cartela.
 
@@ -174,7 +169,7 @@ Esto es lo que hace que la obra se superponga de verdad y no flote a un palmo.
 ### 6. Publicar
 
 La AR necesita **https** obligatoriamente; sin certificado el navegador no da
-la camara. Por red local no vale: `http://192.168.x.x` no es sitio seguro.
+la cámara. Por red local no vale: `http://192.168.x.x` no es sitio seguro.
 
 Desde esta misma carpeta, en Terminal:
 
@@ -184,13 +179,13 @@ npx vercel login      # solo la primera vez
 npx vercel --prod
 ```
 
-No hay build: es estatico puro, Vercel lo sirve tal cual. `vercel.json` fija
-las cabeceras de cache para que `vendor/`, las fuentes y `targets.mind` no se
+No hay build: es estático puro, Vercel lo sirve tal cual. `vercel.json` fija
+las cabeceras de caché para que `vendor/`, las fuentes y `targets.mind` no se
 vuelvan a descargar en cada visita, que es lo que hace que la segunda carga en
-sala sea instantanea. `.vercelignore` deja fuera el zip y el arranque local.
+sala sea instantánea. `.vercelignore` deja fuera el zip y el arranque local.
 
-Para colgarlo del dominio propio, en el panel de Vercel, proyecto -> Settings ->
-Domains, anadir por ejemplo `greyspaces.iridia.world` y crear en el DNS el CNAME
+Para colgarlo del dominio propio, en el panel de Vercel, proyecto → Settings →
+Domains, añadir por ejemplo `greyspaces.iridia.world` y crear en el DNS el CNAME
 que Vercel indique. El certificado lo emite Vercel solo. Cambiar de dominio no
 obliga a volver a subir nada: la app usa rutas relativas.
 
@@ -258,7 +253,9 @@ En `js/config.js`:
 |---|---|
 | `inicio.html` | la página de inicio, con enlaces a todo |
 | `index.html` | la AR normal |
+| `?modo=libre` / `?modo=imagen` | fuerza el modo de anclaje |
 | `?previa=1` | la misma escena sin cámara, con órbita, para verla en el ordenador |
+| `?nacer=0.4` | congela la materialización en ese punto, para revisarla |
 | `?previa=1&quieto=1` | igual pero sin rotación automática |
 | `?calibrar=1` | abre el panel de calibración con la guía encendida |
 | `?mesa=1` | prueba de escritorio: la obra encogida sobre el marcador |
@@ -288,7 +285,7 @@ dentro). A partir de ahí queda en caché.
 
 ## Sobre el color
 
-El verde de IRIDIA es `#3DE8A0` y está en un solo sitio, `PALETA.campo` de
+El verde de IRIDIA es `rgb(0,255,33)`, o sea `#00FF21`, y está en un solo sitio, `PALETA.campo` de
 `js/config.js`, más la variable `--campo` de `css/app.css`. Cámbialo ahí y
 cambia en toda la obra. La onda estacionaria se pinta con mezcla normal y no
 aditiva a propósito: sobre una pared blanca de galería el aditivo se vuelve

@@ -48,7 +48,7 @@ ARTICULOS = [
 
 CARTELAS = [
     # id, nombre, índice de hito (0..9), semilla, giro del asteroide
-    ("A", "Cartela izquierda", 0, 11, -18),
+    ("A", "Cartela principal", 0, 11, -18),
     ("B", "Cartela derecha", 4, 47, 63),
     ("C", "Peana central", 6, 89, 142),
     ("D", "Cartela lateral", 9, 131, 227),
@@ -228,6 +228,19 @@ def cartela(id_, nombre, hito_idx, semilla, giro, dpi, ruta_lato):
     lado = px(122)
     ast = asteroide_grabado(lado, semilla, giro)
     img.paste(ast, (W - m - px(10) - lado, m + px(20)), ast)
+
+    # Marca de puntería en el centro exacto de la cartela. En modo libre el
+    # visitante centra ahí la retícula antes de tocar; en modo imagen no
+    # molesta y da un par de esquinas más al seguimiento.
+    cx, cy = W // 2, H // 2
+    b = px(5.5); g = px(1.6); w = max(1, px(0.35))
+    d.rectangle([cx - b, cy - w, cx - g, cy + w], fill=GRIS_OSC)
+    d.rectangle([cx + g, cy - w, cx + b, cy + w], fill=GRIS_OSC)
+    d.rectangle([cx - w, cy - b, cx + w, cy - g], fill=GRIS_OSC)
+    d.rectangle([cx - w, cy + g, cx + w, cy + b], fill=GRIS_OSC)
+    r = px(0.9)
+    d.ellipse([cx - r, cy - r, cx + r, cy + r], fill=TINTA)
+    d.text((cx, cy + b + px(1.5)), "CENTRAR AQUÍ", font=f_micro, fill=GRIS, anchor="ma")
 
     # Hito de distancia
     km = HITO_KM * (hito_idx + 1)

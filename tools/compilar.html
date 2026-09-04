@@ -10,7 +10,7 @@
   .caja { max-width:640px; }
   input[type=file] { margin:14px 0; color:#c9ced2; }
   button { padding:10px 16px; background:transparent; color:#fff;
-           border:1px solid #3de8a0; font:inherit; cursor:pointer; }
+           border:1px solid #00ff21; font:inherit; cursor:pointer; }
   button:disabled { opacity:.5; border-color:#333; cursor:default; }
   #log { white-space:pre-wrap; margin-top:18px; font-family:ui-monospace,monospace;
          font-size:12px; color:#8f979d; }
@@ -78,7 +78,7 @@ async function compilar(imgs) {
   const url = URL.createObjectURL(new Blob([buffer]));
   const a = document.createElement('a');
   a.href = url; a.download = 'targets.mind'; a.textContent = 'Descargar targets.mind';
-  a.style.cssText = 'display:block;margin-top:14px;color:#3de8a0';
+  a.style.cssText = 'display:block;margin-top:14px;color:#00ff21';
   document.querySelector('.caja').appendChild(a);
   window.__mind = buffer;
   window.__hecho = true;

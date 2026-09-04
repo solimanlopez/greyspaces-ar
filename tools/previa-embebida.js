@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { CAPAS, PIEZA } from '../js/config.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { CAPAS, PIEZA, MODO } from '../js/config.js';
 import { CampoRF } from '../js/rf-field.js';
 import { Asteroide } from '../js/psyche.js';
 import { crearGuia } from '../js/piece.js';
@@ -17,6 +18,11 @@ export function montar(contenedor, opciones = {}) {
 
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0b0d0f);
+  try {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+  } catch {}
   const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 60);
   camera.position.set(1.06, 0.66, 2.28);
 
@@ -42,6 +48,11 @@ export function montar(contenedor, opciones = {}) {
   medir();
   new ResizeObserver(medir).observe(contenedor);
 
+  // Materialización al abrir, y cada vez que se pulse "volver a nacer".
+  let tNacer = -1;
+  const nacer = () => { tNacer = 0; campo.nacer = 0; ast.nacer = 0; };
+  setTimeout(nacer, 400);
+
   let anterior = performance.now();
   renderer.setAnimationLoop(() => {
     const ahora = performance.now();
@@ -49,8 +60,15 @@ export function montar(contenedor, opciones = {}) {
     anterior = ahora;
     const t = ahora / 1000;
     ctr.update();
+    if (tNacer >= 0) {
+      tNacer += dt / MODO.nacimientoSegundos;
+      const x = Math.min(1, tNacer);
+      const e = x < 0.5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+      campo.nacer = e; ast.nacer = e;
+      if (x >= 1) tNacer = -1;
+    }
     const esc = renderer.domElement.height / 500;
-    campo.actualizar(t, dt, camera, 1);
+    campo.actualizar(t, dt, camera, 1, esc);
     ast.actualizar(t, dt, camera, 1, nivelLlegada(campo.tPaquete), esc);
     renderer.render(scene, camera);
   });
@@ -63,5 +81,6 @@ export function montar(contenedor, opciones = {}) {
       else campo.aplicarCapas(capas);
     },
     recorrido: PIEZA.recorrido,
+    nacer,
   };
 }

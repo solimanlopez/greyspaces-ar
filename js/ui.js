@@ -9,8 +9,9 @@ import { MARCADORES, CAPAS, TEXTOS, SENAL, HITOS } from './config.js';
 const $ = (s, r = document) => r.querySelector(s);
 
 export class HUD {
-  constructor({ onCapa }) {
+  constructor({ onCapa, modo = 'imagen' }) {
     this.onCapa = onCapa;
+    this.modo = modo;
     this.estado = $('#estado');
     this.estadoTexto = $('#estado-texto');
     this.pie = $('#pie');
@@ -52,10 +53,14 @@ export class HUD {
     if (info.estado !== this._ultimoEstado) {
       this._ultimoEstado = info.estado;
       const mapa = {
-        buscando: ['buscando', 'Apunta a una de las cartelas'],
-        seguido: ['ok', `Anclado · marcador ${info.marcador}`],
-        reteniendo: ['reten', 'Sin marcador a la vista'],
-        perdido: ['buscando', 'Vuelve a apuntar a una cartela'],
+        // modo imagen
+        buscando: ['buscando', this.modo === 'libre' ? 'Busca una superficie' : 'Apunta a la cartela'],
+        seguido: ['ok', 'Anclada'],
+        reteniendo: ['reten', 'Cartela fuera de vista'],
+        perdido: ['buscando', 'Vuelve a mirar la cartela'],
+        // modo libre
+        apuntando: ['apunta', 'Centra la cartela y toca'],
+        anclada: ['ok', 'Anclada · camina'],
       };
       const [clase, texto] = mapa[info.estado] || mapa.buscando;
       this.estado.className = 'estado ' + clase;

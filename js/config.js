@@ -77,46 +77,32 @@ export const HITOS = Array.from({ length: PIEZA.nBloques }, (_, i) => {
 });
 
 /* --------------------------------------------------------------------------
-   MARCADORES
-   Cada marcador es una cartela impresa cuyo pose respecto a la pieza conocemos.
-   El orden de este array DEBE coincidir con el orden en que se compilaron las
-   imágenes en el archivo targets/targets.mind.
+   LA CARTELA
+   Una sola imagen impresa que emplaza la obra. Sirve de dos maneras:
 
-   anchoImpreso : ancho físico real del marcador impreso, en metros. Crítico:
-                  de aquí sale toda la escala de la escena.
-   posicion     : [x, y, z] del CENTRO del marcador, en coordenadas de pieza.
-   rotacionDeg  : [rx, ry, rz] en grados, orden XYZ. Un marcador plano sobre la
-                  pared mirando al espectador es [0, 0, 0]. Uno tumbado boca
-                  arriba sobre un bloque es [-90, 0, 0].
+     · en modo libre (WebXR, Android): el visitante apunta la retícula al
+       centro de la cartela y toca la pantalla. La obra se ancla a ese punto
+       del espacio y ya puede caminar y rodearla sin volver a mirar el papel.
+     · en modo imagen (iPhone y respaldo): el móvil reconoce la cartela y la
+       obra se sostiene mientras esté a la vista o unos segundos después.
+
+   anchoImpreso : ancho real impreso, en metros. De aquí sale toda la escala.
+   posicion     : [x, y, z] del CENTRO de la cartela en coordenadas de pieza.
+                  Con [0, 0.34, -0.12] queda en la pared de fondo, centrada,
+                  a 34 cm sobre los tubos y 12 cm por detrás de su eje.
+   rotacionDeg  : [0,0,0] plana en la pared mirando al espectador;
+                  [-90,0,0] tumbada boca arriba sobre una peana.
+
+   Se pueden añadir más cartelas al array si la sala lo pide; el orden debe
+   coincidir con el orden de compilación de targets/targets.mind (A, B, C, D).
    -------------------------------------------------------------------------- */
 export const MARCADORES = [
   {
     id: 'A',
-    nombre: 'Cartela izquierda',
-    anchoImpreso: 0.297,                 // A4 apaisado
-    posicion: [-1.05, 0.34, -0.12],
+    nombre: 'Cartela principal',
+    anchoImpreso: 0.420,                 // A3 apaisado
+    posicion: [0.0, 0.34, -0.12],
     rotacionDeg: [0, 0, 0],
-  },
-  {
-    id: 'B',
-    nombre: 'Cartela derecha',
-    anchoImpreso: 0.297,
-    posicion: [1.05, 0.34, -0.12],
-    rotacionDeg: [0, 0, 0],
-  },
-  {
-    id: 'C',
-    nombre: 'Peana central, boca arriba',
-    anchoImpreso: 0.200,
-    posicion: [0.0, -0.055, 0.26],
-    rotacionDeg: [-90, 0, 0],
-  },
-  {
-    id: 'D',
-    nombre: 'Cartela lateral, muro corto',
-    anchoImpreso: 0.297,
-    posicion: [2.30, 0.34, 0.60],
-    rotacionDeg: [0, 90, 0],
   },
 ];
 
@@ -124,10 +110,11 @@ export const MARCADORES = [
    ASTEROIDE
    -------------------------------------------------------------------------- */
 export const PSYCHE = {
-  // Dónde flota, en coordenadas de pieza.
-  posicion: [0.0, 0.52, 0.0],
+  // Dónde flota, en coordenadas de pieza. En medio de la obra, a la altura
+  // de la vista de quien mira la línea, no muy por encima.
+  posicion: [0.0, 0.30, 0.0],
   // Diámetro aparente de la pieza AR, en metros.
-  diametro: 0.34,
+  diametro: 0.42,
   // Proporciones del elipsoide triaxial real de 16 Psyche (278 x 238 x 171 km).
   ejes: [1.0, 0.856, 0.615],
   // Periodo de rotación en segundos. El real es de 4,196 h; aquí se comprime
@@ -147,9 +134,9 @@ export const PSYCHE = {
 export const PALETA = {
   // El verde de IRIDIA. Aquí no hay azules.
   cobre:      0xd08b4f,
-  campo:      0x3de8a0,
+  campo:      0x00ff21,
   campoAlto:  0xffffff,
-  campoBajo:  0x12503a,
+  campoBajo:  0x0a4a16,
   claiming:   0xff4d3d,   // la barra vertical, el silencio reclamado
   hito:       0xbfc6cc,
   psyche:     0x6b6f74,
@@ -168,10 +155,11 @@ export const ANCLAJE = {
   // Suavizado extra cuando el visitante está quieto, para matar el temblor.
   suavizadoQuieto: 0.93,
   // Segundos que la obra se mantiene en su sitio con el giroscopio después de
-  // perder todos los marcadores, antes de desvanecerse.
-  retencionSegundos: 4.0,
+  // perder la cartela, antes de desvanecerse. Solo en modo imagen; en modo
+  // libre el anclaje es del espacio y no caduca.
+  retencionSegundos: 8.0,
   // Segundos de desvanecido al final de la retención.
-  desvanecidoSegundos: 1.2,
+  desvanecidoSegundos: 1.6,
   // Parámetros del filtro one-euro interno de MindAR. Bajar filterMinCF da más
   // estabilidad y más latencia.
   filterMinCF: 0.0008,
@@ -179,6 +167,24 @@ export const ANCLAJE = {
   // Fotogramas que aguanta un target perdido antes de darlo por perdido.
   missTolerance: 8,
   warmupTolerance: 3,
+};
+
+/* --------------------------------------------------------------------------
+   MODO DE ANCLAJE
+   'auto'   usa WebXR si el móvil lo tiene (Android con Chrome) y si no, imagen
+   'libre'  fuerza WebXR
+   'imagen' fuerza el seguimiento por imagen
+   Se puede sobreescribir con ?modo=libre o ?modo=imagen en la URL.
+   -------------------------------------------------------------------------- */
+export const MODO = {
+  preferido: 'auto',
+  // Duración de la materialización de la obra al anclarse, en segundos.
+  nacimientoSegundos: 2.6,
+  // Variant Launch: WebXR en iPhone vía App Clip. Con la clave del proyecto
+  // aquí, la app carga su SDK y el iPhone entra en modo libre igual que
+  // Android. Vacío = no se carga nada y el iPhone usa el modo imagen.
+  // Plan gratuito hasta 3.000 aperturas al mes en launch.variant3d.com.
+  variantKey: '',
 };
 
 /* --------------------------------------------------------------------------
@@ -206,13 +212,13 @@ export const CALIDAD = (nucleos >= 8 && memoria >= 6) ? 'alta'
                      : (nucleos >= 6 ? 'media' : 'baja');
 
 export const RENDIMIENTO = {
-  alta:  { planos: 64, arcos: 9, segmentos: 22, anillos: 34 },
-  media: { planos: 48, arcos: 7, segmentos: 20, anillos: 26 },
-  baja:  { planos: 32, arcos: 5, segmentos: 16, anillos: 18 },
+  alta:  { planos: 64, arcos: 9, segmentos: 22, anillos: 34, estela: 160, enlace: 320 },
+  media: { planos: 48, arcos: 7, segmentos: 20, anillos: 26, estela: 110, enlace: 220 },
+  baja:  { planos: 32, arcos: 5, segmentos: 16, anillos: 18, estela: 70,  enlace: 140 },
 }[CALIDAD];
 
 export const TEXTOS = {
   titulo: 'GREY SPACES',
-  subtitulo: 'ACT · IRIDIA — la parte invisible de la obra',
+  subtitulo: 'IRIDIA · la parte invisible de la obra',
   frecuencia: `${(SENAL.frecuenciaHz / 1e9).toLocaleString('de-DE')} GHz · banda X`,
 };

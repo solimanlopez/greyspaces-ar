@@ -26,6 +26,7 @@ const GLSL_ONDA = /* glsl */`
   uniform float uGamma;
   uniform float uK;
   uniform float uVel;
+  uniform float uNacer;
 
   float envolvente(float x) {
     // |1 + G·e^{-2ikx}| normalizado a 0..1
@@ -36,9 +37,21 @@ const GLSL_ONDA = /* glsl */`
   float fase(float x) {
     return sin(uK * x - uTiempo * uVel);
   }
-  // Desvanecido suave en los dos extremos del recorrido.
+  // Desvanecido suave en los dos extremos del recorrido, y la materialización:
+  // al anclarse, la obra se dibuja de un extremo al otro en vez de aparecer
+  // de golpe. uNacer va de 0 a 1 en un par de segundos y luego se queda en 1.
   float extremos(float x) {
-    return smoothstep(0.0, 0.06, x) * smoothstep(1.0, 0.94, x);
+    float bordes = smoothstep(0.0, 0.06, x) * smoothstep(1.0, 0.94, x);
+    float frente = uNacer * 1.3 - x;
+    float nacer = smoothstep(0.0, 0.22, frente);
+    // Un filo brillante justo en el frente de la materialización.
+    float filo = exp(-frente * frente * 90.0) * (1.0 - step(1.0, uNacer)) * 2.5;
+    return bordes * (nacer + filo);
+  }
+  // Igual pero sin el filo: para lo que mueve geometría, no brillo.
+  float revelado(float x) {
+    float bordes = smoothstep(0.0, 0.06, x) * smoothstep(1.0, 0.94, x);
+    return bordes * smoothstep(0.0, 0.22, uNacer * 1.3 - x);
   }
 `;
 
@@ -53,6 +66,7 @@ export class CampoRF {
       uVel: { value: 2.4 },
       uOpacidad: { value: 1 },
       uPaquete: { value: -1 },   // posición del pulso, 0..1; <0 = apagado
+      uNacer: { value: 1 },      // materialización, 0..1
     };
 
     this.L = PIEZA.recorrido;
@@ -220,7 +234,7 @@ export class CampoRF {
           ${GLSL_ONDA}
           void main() {
             float e = envolvente(aX);
-            float w = e * fase(aX) * uAmp * extremos(aX);
+            float w = e * fase(aX) * uAmp * revelado(aX);
             vec3 p = position;
             vec3 dir = (uHorizontal > 0.5) ? vec3(0.0, 0.0, 1.0) : vec3(0.0, 1.0, 0.0);
             p += dir * w;
@@ -284,9 +298,9 @@ export class CampoRF {
         uniform float uAmp; varying float vI;
         ${GLSL_ONDA}
         void main() {
-          float e = envolvente(aX) * extremos(aX);
+          float e = envolvente(aX) * revelado(aX);
           vec3 p = position + vec3(0.0, aSigno * e * uAmp, 0.0);
-          vI = e;
+          vI = envolvente(aX) * extremos(aX);
           gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
         }`,
       fragmentShader: /* glsl */`
@@ -402,20 +416,24 @@ export class CampoRF {
     });
     this.grupo.add(this.grupoHitos);
 
-    // El pulso: un pequeño halo aditivo sobre el eje.
+    // El pulso: un halo aditivo sobre el eje, con núcleo blanco.
     const halo = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.16, 0.16),
+      new THREE.PlaneGeometry(0.24, 0.24),
       new THREE.ShaderMaterial({
         uniforms: { uOpacidad: this.uniformes.uOpacidad,
-                    uColor: { value: new THREE.Color(PALETA.campoAlto) } },
+                    uColor: { value: new THREE.Color(PALETA.campoAlto) },
+                    uVerde: { value: new THREE.Color(PALETA.campo) } },
         vertexShader: `varying vec2 vUv; void main(){ vUv = uv;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
         fragmentShader: `precision mediump float; varying vec2 vUv;
-          uniform vec3 uColor; uniform float uOpacidad;
+          uniform vec3 uColor; uniform vec3 uVerde; uniform float uOpacidad;
           void main(){
             float d = length(vUv - 0.5) * 2.0;
-            float a = exp(-d * d * 6.0) * (1.0 - smoothstep(0.85, 1.0, d));
-            gl_FragColor = vec4(uColor, a * 0.9 * uOpacidad);
+            float nucleo = exp(-d * d * 28.0);
+            float aura = exp(-d * d * 5.0) * 0.55;
+            float a = (nucleo + aura) * (1.0 - smoothstep(0.85, 1.0, d));
+            vec3 c = mix(uVerde, uColor, nucleo);
+            gl_FragColor = vec4(c, a * uOpacidad);
           }`,
         transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
       })
@@ -424,8 +442,67 @@ export class CampoRF {
     this.halo = halo;
     this.grupo.add(halo);
 
+    // Estela: partículas que quedan atrás del pulso y se apagan. Todo en GPU:
+    // cada partícula lleva su retraso y su dispersión alrededor del eje.
+    const N = RENDIMIENTO.estela;
+    const pos = new Float32Array(N * 3);
+    const retraso = new Float32Array(N);
+    const disp = new Float32Array(N * 2);
+    for (let i = 0; i < N; i++) {
+      retraso[i] = (i / N) * 0.11 + Math.random() * 0.004;
+      const ang = Math.random() * Math.PI * 2;
+      const r = 0.012 + Math.random() * 0.05;
+      disp[i * 2] = Math.cos(ang) * r;
+      disp[i * 2 + 1] = Math.sin(ang) * r;
+    }
+    const ge = new THREE.BufferGeometry();
+    ge.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    ge.setAttribute('aRetraso', new THREE.BufferAttribute(retraso, 1));
+    ge.setAttribute('aDisp', new THREE.BufferAttribute(disp, 2));
+    this.matEstela = new THREE.ShaderMaterial({
+      uniforms: {
+        ...this.uniformes,
+        uLargo: { value: this.L },
+        uColor: { value: new THREE.Color(PALETA.campo) },
+        uEscala: { value: 1 },
+      },
+      vertexShader: /* glsl */`
+        attribute float aRetraso; attribute vec2 aDisp;
+        uniform float uPaquete; uniform float uLargo; uniform float uEscala;
+        uniform float uTiempo;
+        varying float vI;
+        void main() {
+          float xn = uPaquete - aRetraso;
+          float vivo = step(0.0, uPaquete) * step(0.0, xn);
+          float t = aRetraso / 0.11;
+          // Se abren un poco al quedarse atrás, como humo frío.
+          vec3 p = vec3((xn - 0.5) * uLargo, aDisp.x * (0.6 + t * 1.4), aDisp.y * (0.6 + t * 1.4));
+          p.y += sin(uTiempo * 3.0 + aRetraso * 200.0) * 0.004 * t;
+          vI = (1.0 - t) * (1.0 - t) * vivo;
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          gl_PointSize = clamp((1.5 + 4.0 * (1.0 - t)) * uEscala / max(-mv.z, 0.001), 1.0, 16.0);
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: /* glsl */`
+        precision mediump float;
+        uniform vec3 uColor; uniform float uOpacidad; varying float vI;
+        void main() {
+          float d = length(gl_PointCoord - 0.5) * 2.0;
+          if (d > 1.0 || vI <= 0.001) discard;
+          gl_FragColor = vec4(uColor, (1.0 - d) * vI * 0.9 * uOpacidad);
+        }`,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    });
+    this.estela = new THREE.Points(ge, this.matEstela);
+    this.estela.frustumCulled = false;
+    this.grupo.add(this.estela);
+
     this.tPaquete = 0;
   }
+
+  /** Materialización de la obra: 0 = nada, 1 = entera. */
+  set nacer(v) { this.uniformes.uNacer.value = v; }
+  get nacer() { return this.uniformes.uNacer.value; }
 
   /** Enciende y apaga capas desde el HUD. */
   aplicarCapas(c) {
@@ -435,19 +512,24 @@ export class CampoRF {
     this.radiacion.visible = !!c.radiacion;
     this.grupoHitos.visible = !!c.paquete;
     this.halo.visible = !!c.paquete;
+    this.estela.visible = !!c.paquete;
   }
 
   /** @param {THREE.Camera} camara para orientar las etiquetas */
-  actualizar(t, dt, camara, opacidad = 1) {
+  actualizar(t, dt, camara, opacidad = 1, escalaPixel = 1) {
     this.uniformes.uTiempo.value = t;
     this.uniformes.uOpacidad.value = opacidad;
+    this.matEstela.uniforms.uEscala.value = escalaPixel;
+    // Mientras la obra se materializa el pulso espera en el origen.
+    const nacido = this.uniformes.uNacer.value >= 1;
 
     // Recorrido del pulso, con una pausa al llegar al final.
-    this.tPaquete = (this.tPaquete + dt * SENAL.velocidadPaquete) % 1.28;
+    if (nacido) this.tPaquete = (this.tPaquete + dt * SENAL.velocidadPaquete) % 1.28;
+    else this.tPaquete = 0;
     const p = this.tPaquete <= 1 ? this.tPaquete : -1;
     this.uniformes.uPaquete.value = p;
 
-    if (p >= 0) {
+    if (p >= 0 && nacido) {
       this.halo.visible = !!this.capas.paquete;
       this.halo.position.set((p - 0.5) * this.L, 0, 0);
       if (camara) this.halo.quaternion.copy(camara.quaternion);
@@ -516,7 +598,7 @@ function etiquetaTextura(hito) {
   x.font = '300 34px Lato, "Helvetica Neue", Arial, sans-serif';
   x.fillText('km', W / 2 + medirAncho(x, hito.etiqueta, 72) / 2 + 34, 122);
 
-  x.fillStyle = '#3de8a0';
+  x.fillStyle = '#00ff21';
   x.font = '300 38px Lato, "Helvetica Neue", Arial, sans-serif';
   x.fillText(tiempo, W / 2, 186);
 

@@ -8,7 +8,8 @@
    ========================================================================== */
 
 import * as THREE from 'three';
-import { PSYCHE, PALETA, PIEZA } from './config.js';
+import { mergeVertices } from 'three/addons/utils/BufferGeometryUtils.js';
+import { PSYCHE, PALETA, PIEZA, RENDIMIENTO, CALIDAD } from './config.js';
 
 /* --- ruido de valor con fBm, suficiente para desplazar una malla ---------- */
 function hash3(x, y, z) {
@@ -58,15 +59,19 @@ function generarCrateres(n, semilla = 7) {
 }
 
 export function asteroideProcedural(detalle = 5) {
-  const g = new THREE.IcosahedronGeometry(1, detalle);
+  // La icoesfera de three viene sin índices, con cada cara suelta: si se
+  // desplaza así, las normales salen por cara y el asteroide se ve facetado.
+  // Soldar los vértices antes de desplazar da normales suaves de verdad.
+  let g = new THREE.IcosahedronGeometry(1, detalle);
   g.deleteAttribute('uv');
+  g = mergeVertices(g, 1e-4);
   const pos = g.attributes.position;
   const crateres = generarCrateres(30);
   const v = new THREE.Vector3();
   const colores = [];
-  const base = new THREE.Color(PALETA.psyche);
+  const base = new THREE.Color(0x4f5358);
   const claro = new THREE.Color(0x9aa0a6);
-  const oscuro = new THREE.Color(0x33373b);
+  const oscuro = new THREE.Color(0x1f2225);
 
   for (let i = 0; i < pos.count; i++) {
     v.fromBufferAttribute(pos, i).normalize();
@@ -108,8 +113,9 @@ export function asteroideProcedural(detalle = 5) {
 
   const mat = new THREE.MeshStandardMaterial({
     vertexColors: true,
-    metalness: 0.55,     // Psyche es de tipo M, rica en metal
-    roughness: 0.78,
+    metalness: 0.78,     // Psyche es de tipo M, rica en metal
+    roughness: 0.64,
+    envMapIntensity: 0.5, // hierro oscuro, no aluminio pulido
     flatShading: false,
   });
   return new THREE.Mesh(g, mat);
@@ -124,12 +130,18 @@ export class Asteroide {
     this.pivote.rotation.z = THREE.MathUtils.degToRad(PSYCHE.inclinacionEje);
     this.grupo.add(this.pivote);
 
-    this.cuerpo = asteroideProcedural(5);
+    // Más malla en móviles buenos: el relieve deja de verse facetado.
+    this.cuerpo = asteroideProcedural(CALIDAD === 'alta' ? 6 : 5);
     this._escalar(this.cuerpo);
     this.pivote.add(this.cuerpo);
+    this._aro(this.cuerpo);
 
     this._halo();
     this._enlace();
+
+    // Materialización: 0 = nada, 1 = entera.
+    this._nacer = 1;
+    this.nivel = 0;
 
     // Las luces viven dentro del grupo del asteroide y apuntan a su centro,
     // así la iluminación no cambia al girar alrededor de la obra.
@@ -138,7 +150,8 @@ export class Asteroide {
     const key = new THREE.DirectionalLight(0xffffff, 2.1);
     key.position.set(0.6, 0.9, 0.8);
     key.target = diana;
-    const rim = new THREE.DirectionalLight(0x8fd8ff, 1.3);
+    // La luz de borde es la del campo: el asteroide recibe la señal por detrás.
+    const rim = new THREE.DirectionalLight(PALETA.campo, 1.1);
     rim.position.set(-0.8, -0.2, -0.7);
     rim.target = diana;
     const amb = new THREE.HemisphereLight(0xa8c4d4, 0x2a2c30, 0.55);
@@ -157,6 +170,65 @@ export class Asteroide {
     caja.getCenter(t);
     obj.position.sub(t.multiplyScalar(k));
   }
+
+  /**
+   * Aro de recepción: una piel fresnel verde sobre el propio cuerpo, apenas
+   * visible en reposo, que se enciende cuando llega la señal, y un barrido
+   * que recorre la superficie de abajo arriba en el momento de la llegada.
+   * Va como hijo del cuerpo para heredar su escala y su giro.
+   */
+  _aro(cuerpo) {
+    if (this.aro) { this.aro.parent?.remove(this.aro); }
+    const geo = cuerpo.geometry;
+    this.matAro = new THREE.ShaderMaterial({
+      uniforms: {
+        uNivel: { value: 0 },
+        uOpacidad: { value: 1 },
+        uTiempo: { value: 0 },
+        uColor: { value: new THREE.Color(PALETA.campo) },
+      },
+      vertexShader: /* glsl */`
+        varying vec3 vN; varying vec3 vV; varying float vY;
+        void main() {
+          vec4 mv = modelViewMatrix * vec4(position, 1.0);
+          vN = normalize(normalMatrix * normal);
+          vV = normalize(-mv.xyz);
+          vY = position.y;
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: /* glsl */`
+        precision mediump float;
+        varying vec3 vN; varying vec3 vV; varying float vY;
+        uniform float uNivel; uniform float uOpacidad; uniform float uTiempo;
+        uniform vec3 uColor;
+        void main() {
+          float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.6);
+          // Reposo: un filo tenue. Llegada: el filo sube y un barrido cruza.
+          float base = f * (0.10 + 0.75 * uNivel);
+          float y = vY;                                  // ~ -1..1 en el cuerpo
+          float frente = (uNivel * 2.4 - 1.2);
+          float barrido = exp(-pow((y - frente) * 3.2, 2.0)) * smoothstep(0.0, 0.08, uNivel) * (1.0 - uNivel * 0.6);
+          // Un latido lento, para que nunca esté del todo quieto.
+          base *= 0.85 + 0.15 * sin(uTiempo * 1.7);
+          gl_FragColor = vec4(uColor, (base + barrido * 0.7) * uOpacidad);
+        }`,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    });
+    this.aro = new THREE.Mesh(geo, this.matAro);
+    this.aro.scale.setScalar(1.012);
+    cuerpo.add(this.aro);
+  }
+
+  /** Materialización de la obra: 0 = nada, 1 = entera. */
+  set nacer(v) {
+    this._nacer = v;
+    // Crece desde nada con un pequeño rebote al final.
+    const t = Math.max(0, Math.min(1, v));
+    const e = t < 1 ? 1 - Math.pow(1 - t, 3) : 1;
+    const rebote = t < 1 ? Math.sin(t * Math.PI) * 0.12 * (1 - t) : 0;
+    this.grupo.scale.setScalar(Math.max(0.0001, e + rebote));
+  }
+  get nacer() { return this._nacer; }
 
   /** Halo de recepción: se enciende cuando llega la señal. */
   _halo() {
@@ -191,7 +263,7 @@ export class Asteroide {
 
   /** Enlace: partículas que suben del eje de la línea hasta el asteroide. */
   _enlace() {
-    const N = 220;
+    const N = RENDIMIENTO.enlace;
     const pos = new Float32Array(N * 3);
     const off = new Float32Array(N);
     const lat = new Float32Array(N);
@@ -265,6 +337,14 @@ export class Asteroide {
       this.cuerpo.material.dispose();
       this.cuerpo = modelo;
       this.pivote.add(modelo);
+      // El aro de recepción se rehace sobre la malla mayor del GLB.
+      let mayor = null, nMax = 0;
+      modelo.traverse((o) => {
+        if (o.isMesh && o.geometry?.attributes?.position?.count > nMax) {
+          nMax = o.geometry.attributes.position.count; mayor = o;
+        }
+      });
+      if (mayor) this._aro(mayor);
       console.info('[psyche] usando models/psyche.glb');
     } catch (e) {
       console.info('[psyche] sin GLB, se usa el asteroide procedural');
@@ -277,12 +357,18 @@ export class Asteroide {
    */
   actualizar(t, dt, camara, opacidad = 1, llegada = 0, escalaPixel = 1) {
     this.pivote.rotation.y = (t / PSYCHE.periodoRotacion) * Math.PI * 2;
-    // Ligera libración, para que no parezca un giro de motor.
-    this.pivote.rotation.x = Math.sin(t * 0.13) * 0.05;
+    // Tumbado lento en dos ejes, para que no parezca un giro de motor.
+    this.pivote.rotation.x = Math.sin(t * 0.13) * 0.06;
+    this.pivote.rotation.z = THREE.MathUtils.degToRad(PSYCHE.inclinacionEje) + Math.sin(t * 0.09) * 0.04;
 
-    this.nivel = (this.nivel || 0) + (llegada - (this.nivel || 0)) * 0.08;
+    // La llegada sube rápido y baja despacio.
+    const k = llegada > this.nivel ? 0.10 : 0.035;
+    this.nivel += (llegada - this.nivel) * k;
     this.matHalo.uniforms.uNivel.value = this.nivel;
     this.matHalo.uniforms.uOpacidad.value = opacidad;
+    this.matAro.uniforms.uNivel.value = this.nivel;
+    this.matAro.uniforms.uOpacidad.value = opacidad;
+    this.matAro.uniforms.uTiempo.value = t;
     if (camara) this.halo.quaternion.copy(camara.quaternion);
 
     this.matEnlace.uniforms.uTiempo.value = t;
