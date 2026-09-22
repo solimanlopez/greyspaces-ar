@@ -18,7 +18,7 @@
    ========================================================================== */
 
 import * as THREE from 'three';
-import { PIEZA, PSYCHE, CAPAS, MARCADORES, ANCLAJE, TEXTOS, HITOS, MODO } from './config.js';
+import { PIEZA, PSYCHE, CAPAS, MARCADORES, ANCLAJE, TEXTOS, HITOS, MODO, VERSION } from './config.js';
 import { AnclajeMultiMarcador } from './anchoring.js';
 import { CampoRF } from './rf-field.js';
 import { Asteroide } from './psyche.js';
@@ -160,7 +160,7 @@ async function arrancarImagen() {
 
   const mindar = new MindARThree({
     container: $('#ar'),
-    imageTargetSrc: 'targets/targets.mind',
+    imageTargetSrc: `targets/targets.mind?v=${VERSION}`,
     maxTrack: ANCLAJE.maxTrack,
     filterMinCF: ANCLAJE.filterMinCF,
     filterBeta: ANCLAJE.filterBeta,

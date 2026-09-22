@@ -13,6 +13,11 @@
      +Z      → hacia el espectador (saliendo de la pared)
    ========================================================================== */
 
+/* Versión de los archivos pesados. Súbela (4 → 5) cada vez que recompiles
+   targets.mind: el móvil lo guarda en caché una semana y si no cambia la URL
+   seguiría reconociendo los triggers antiguos. */
+export const VERSION = '4';
+
 export const PIEZA = {
   // ---- MEDIR EN SALA -----------------------------------------------------
   // Distancia entre los ejes de los dos tubos de cobre.
