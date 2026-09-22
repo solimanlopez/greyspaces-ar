@@ -281,23 +281,24 @@ export class Asteroide {
       uniforms: {
         uTiempo: { value: 0 },
         uOpacidad: { value: 1 },
-        uAlto: { value: PSYCHE.posicion[1] },
+        uOrigen: { value: new THREE.Vector3(-PSYCHE.posicion[0], -PSYCHE.posicion[1], -PSYCHE.posicion[2]) },
         uAncho: { value: PIEZA.recorrido * 0.30 },
         uColor: { value: new THREE.Color(PALETA.campo) },
         uEscala: { value: 1 },
       },
       vertexShader: /* glsl */`
         attribute float aOff; attribute float aLat;
-        uniform float uTiempo; uniform float uAlto; uniform float uAncho;
+        uniform float uTiempo; uniform vec3 uOrigen; uniform float uAncho;
         uniform float uEscala;
         varying float vI;
         void main() {
           float t = fract(uTiempo * 0.11 + aOff);
-          // Sube desde la línea y converge hacia el asteroide.
-          float y = -uAlto + t * uAlto;
-          float x = aLat * uAncho * (1.0 - t) * (1.0 - t);
-          float z = sin(aOff * 43.0) * uAncho * 0.35 * (1.0 - t) * (1.0 - t);
-          vec3 p = vec3(x, y, z);
+          // Parte de la línea, repartido a lo largo de ella, y converge hacia
+          // el asteroide esté donde esté, con una comba hacia arriba.
+          vec3 salida = uOrigen + vec3(aLat * uAncho, 0.0, sin(aOff * 43.0) * 0.05);
+          float s = t * t * (3.0 - 2.0 * t);
+          vec3 p = mix(salida, vec3(0.0), s);
+          p.y += sin(t * 3.14159) * 0.25 * length(uOrigen) * 0.2;
           vI = smoothstep(0.0, 0.15, t) * (1.0 - smoothstep(0.82, 1.0, t));
           vec4 mv = modelViewMatrix * vec4(p, 1.0);
           float s = (2.0 + 5.0 * vI) * uEscala / max(-mv.z, 0.001);

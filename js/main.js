@@ -287,14 +287,14 @@ async function arrancarPrevia() {
   const scene = new THREE.Scene();
   scene.background = new THREE.Color(0x0b0d0f);
   const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.05, 60);
-  camera.position.set(1.42 * ESCALA_MESA, 0.92 * ESCALA_MESA, 3.05 * ESCALA_MESA);
+  camera.position.set(2.6 * ESCALA_MESA, 1.7 * ESCALA_MESA, 4.6 * ESCALA_MESA);
 
   const obra = construirObra();
   scene.add(obra.raiz);
   entornoReflejos(renderer, scene);
 
   const ctr = new OrbitControls(camera, renderer.domElement);
-  ctr.target.set(0, 0.18 * ESCALA_MESA, 0);
+  ctr.target.set(0, 0.55 * ESCALA_MESA, 0.9 * ESCALA_MESA);
   ctr.enableDamping = true;
   ctr.autoRotate = !params.has('quieto');
   ctr.autoRotateSpeed = 0.45;

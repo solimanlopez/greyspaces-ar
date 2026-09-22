@@ -110,11 +110,12 @@ export const MARCADORES = [
    ASTEROIDE
    -------------------------------------------------------------------------- */
 export const PSYCHE = {
-  // Dónde flota, en coordenadas de pieza. En medio de la obra, a la altura
-  // de la vista de quien mira la línea, no muy por encima.
-  posicion: [0.0, 0.30, 0.0],
+  // Dónde flota, en coordenadas de pieza. En el centro de la sala: dos metros
+  // hacia el espectador desde los tubos y 1,2 m por encima de ellos, para que
+  // quede a la altura de la vista y se pueda rodear.
+  posicion: [0.0, 1.2, 2.0],
   // Diámetro aparente de la pieza AR, en metros.
-  diametro: 0.42,
+  diametro: 0.60,
   // Proporciones del elipsoide triaxial real de 16 Psyche (278 x 238 x 171 km).
   ejes: [1.0, 0.856, 0.615],
   // Periodo de rotación en segundos. El real es de 4,196 h; aquí se comprime
@@ -194,7 +195,8 @@ export const MODO = {
 export const CAPAS = {
   guia: false,        // wireframe de tubos y bloques, para verificar el encaje
   campoCercano: true, // líneas de campo envolviendo los tubos
-  estacionaria: true, // envolvente de la onda estacionaria
+  estacionaria: true, // la onda circular: anillos alrededor de la línea
+  cintas: false,      // la onda plana antigua, en cinta; apagada por defecto
   radiacion: true,    // frentes que se desprenden hacia la sala
   paquete: true,      // el paquete que recorre los hitos
   psyche: true,
@@ -212,9 +214,9 @@ export const CALIDAD = (nucleos >= 8 && memoria >= 6) ? 'alta'
                      : (nucleos >= 6 ? 'media' : 'baja');
 
 export const RENDIMIENTO = {
-  alta:  { planos: 64, arcos: 9, segmentos: 22, anillos: 34, estela: 160, enlace: 320 },
-  media: { planos: 48, arcos: 7, segmentos: 20, anillos: 26, estela: 110, enlace: 220 },
-  baja:  { planos: 32, arcos: 5, segmentos: 16, anillos: 18, estela: 70,  enlace: 140 },
+  alta:  { planos: 48, arcos: 7, segmentos: 22, anillos: 48, ondaAnillos: 120, estela: 160, enlace: 360 },
+  media: { planos: 36, arcos: 6, segmentos: 20, anillos: 36, ondaAnillos: 90,  estela: 110, enlace: 240 },
+  baja:  { planos: 24, arcos: 5, segmentos: 16, anillos: 24, ondaAnillos: 64,  estela: 70,  enlace: 150 },
 }[CALIDAD];
 
 export const TEXTOS = {

@@ -93,9 +93,11 @@ js/ui.js                    estado, capas y panel de calibración
 css/                        estilos y Lato autoalojada
 vendor/                     three.js 0.160 y MindAR 1.2.5, servidos en local
 targets/targets.mind        archivo de seguimiento ya compilado
-targets/imprimir/           las cuatro cartelas a 300 ppp, listas para imprenta
+targets/imprimir/           las cuatro cartelas a 300 ppp, listas para imprenta,
+                            y la cartela del QR (qr-cartela.png, A5) con el QR suelto
 targets/compilar/           las mismas a 1024 px, para recompilar si las cambias
 tools/generar-marcadores.py genera las cartelas
+tools/generar-qr.py         genera la cartela del QR: python3 tools/generar-qr.py https://ar.iridia.world
 tools/compilar.html         compila targets.mind en local, sin subir nada
 tools/servidor.js           servidor estático, por si no hay python3
 vercel.json                 cabeceras de caché para la publicación

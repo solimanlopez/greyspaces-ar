@@ -74,6 +74,7 @@ export class CampoRF {
 
     this._campoCercano();
     this._ondaEstacionaria();
+    this._ondaCircular();
     this._radiacion();
     this._paquete();
 
@@ -316,6 +317,89 @@ export class CampoRF {
   }
 
   /* ---------------------------------------------------------------------
+     2b. ONDA CIRCULAR
+     La onda estacionaria como lo que es alrededor de un conductor: un tubo de
+     campo cuyo radio respira. Muchos anillos a lo largo de la línea, cada uno
+     un círculo en el plano transversal, con el radio modulado por la
+     envolvente y la fase. Al recorrerla se lee desde cualquier sitio y tiene
+     profundidad: los anillos lejanos se ven pequeños y tenues, los cercanos
+     grandes, y los vientres se hinchan y viajan a lo largo del cobre.
+     --------------------------------------------------------------------- */
+  _ondaCircular() {
+    const N = RENDIMIENTO.ondaAnillos;
+    const SEG = 72;
+    const radioBase = PIEZA.separacionTubos * 0.9;
+    const amp = 0.11;
+
+    const base = new THREE.BufferGeometry();
+    const p = [], ang = [];
+    for (let i = 0; i < SEG; i++) {
+      const t0 = (i / SEG) * Math.PI * 2, t1 = ((i + 1) / SEG) * Math.PI * 2;
+      p.push(0, Math.sin(t0), Math.cos(t0)); ang.push(t0);
+      p.push(0, Math.sin(t1), Math.cos(t1)); ang.push(t1);
+    }
+    base.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
+
+    const g = new THREE.InstancedBufferGeometry();
+    g.setAttribute('position', base.attributes.position);
+    g.setAttribute('aAng', new THREE.Float32BufferAttribute(ang, 1));
+    const xs = new Float32Array(N);
+    for (let i = 0; i < N; i++) xs[i] = (i + 0.5) / N;
+    g.setAttribute('aXn', new THREE.InstancedBufferAttribute(xs, 1));
+    g.instanceCount = N;
+
+    const mat = new THREE.ShaderMaterial({
+      uniforms: {
+        ...this.uniformes,
+        uColor: { value: new THREE.Color(PALETA.campo) },
+        uColorAlto: { value: new THREE.Color(PALETA.campoAlto) },
+        uLargo: { value: this.L },
+        uRadioBase: { value: radioBase },
+        uAmp: { value: amp },
+      },
+      vertexShader: /* glsl */`
+        attribute float aXn;
+        attribute float aAng;
+        uniform float uLargo; uniform float uRadioBase; uniform float uAmp;
+        uniform float uPaquete;
+        varying float vI;
+        ${GLSL_ONDA}
+        void main() {
+          float e = envolvente(aXn);
+          float f = fase(aXn);
+          // El radio respira con la onda: vientres hinchados, nodos ceñidos.
+          float r = uRadioBase + uAmp * e * (0.55 + 0.45 * f) * revelado(aXn);
+          // Un ligero achatado que gira con la fase, para que el tubo no sea
+          // un cilindro muerto: la sección late.
+          r *= 1.0 + 0.08 * f * cos(2.0 * aAng + uTiempo * 0.7);
+          vec3 p = position * r;
+          p.x = (aXn - 0.5) * uLargo;
+          float i = e * (0.35 + 0.65 * abs(f)) * extremos(aXn);
+          if (uPaquete >= 0.0) {
+            float d = abs(aXn - uPaquete);
+            i += exp(-d * d / 0.0012) * 1.6;
+          }
+          vI = i;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
+        }`,
+      fragmentShader: /* glsl */`
+        precision mediump float;
+        uniform vec3 uColor; uniform vec3 uColorAlto; uniform float uOpacidad;
+        varying float vI;
+        void main() {
+          float i = clamp(vI, 0.0, 2.0);
+          vec3 c = mix(uColor, uColorAlto, smoothstep(0.9, 1.7, i));
+          gl_FragColor = vec4(c, clamp(i, 0.0, 1.0) * 0.85 * uOpacidad);
+        }`,
+      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+    });
+
+    this.ondaCircular = new THREE.LineSegments(g, mat);
+    this.ondaCircular.frustumCulled = false;
+    this.grupo.add(this.ondaCircular);
+  }
+
+  /* ---------------------------------------------------------------------
      3. RADIACIÓN
      Anillos que crecen alrededor del eje de la línea y se apagan al
      alejarse. Instanciados: una sola geometría de círculo repetida.
@@ -323,7 +407,7 @@ export class CampoRF {
   _radiacion() {
     const ANILLOS = RENDIMIENTO.anillos;
     const SEG = 64;
-    const radioMax = 0.42;
+    const radioMax = 1.7;    // hasta bien entrada la sala
 
     const base = new THREE.BufferGeometry();
     const p = [];
@@ -363,19 +447,20 @@ export class CampoRF {
         varying float vI;
         ${GLSL_ONDA}
         void main() {
-          float ciclo = fract(uTiempo * 0.13 + aOffset);
-          float r = ciclo * uRadioMax;
+          float ciclo = fract(uTiempo * 0.085 + aOffset);
+          // Crece rápido al principio y frena al alejarse, como un frente real.
+          float r = uRadioMax * (1.0 - pow(1.0 - ciclo, 1.8));
           float e = envolvente(aXn) * extremos(aXn);
           vec3 p = position * r;
           p.x = (aXn - 0.5) * uLargo;
           // Se apaga al alejarse y nace con fuerza en los vientres.
-          vI = e * (1.0 - ciclo) * (1.0 - ciclo) * smoothstep(0.0, 0.12, ciclo);
+          vI = e * pow(1.0 - ciclo, 1.6) * smoothstep(0.0, 0.08, ciclo);
           gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
         }`,
       fragmentShader: /* glsl */`
         precision mediump float;
         uniform vec3 uColor; uniform float uOpacidad; varying float vI;
-        void main(){ gl_FragColor = vec4(uColor, vI * 0.26 * uOpacidad); }`,
+        void main(){ gl_FragColor = vec4(uColor, vI * 0.27 * uOpacidad); }`,
       transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
     });
 
@@ -508,7 +593,11 @@ export class CampoRF {
   aplicarCapas(c) {
     this.capas = c;
     this.mallaCampo.visible = !!c.campoCercano;
-    this.grupoOnda.visible = !!c.estacionaria;
+    this.ondaCircular.visible = !!c.estacionaria;
+    this.envolvente.visible = !!c.estacionaria;
+    this.cintaV.visible = !!c.cintas;
+    this.cintaH.visible = !!c.cintas;
+    this.grupoOnda.visible = !!(c.estacionaria || c.cintas);
     this.radiacion.visible = !!c.radiacion;
     this.grupoHitos.visible = !!c.paquete;
     this.halo.visible = !!c.paquete;

@@ -30,7 +30,8 @@ export class HUD {
   _construirCapas() {
     const nombres = {
       campoCercano: 'Campo cercano',
-      estacionaria: 'Onda estacionaria',
+      estacionaria: 'Onda circular',
+      cintas: 'Onda en cinta',
       radiacion: 'Radiación',
       paquete: 'Pulso e hitos',
       psyche: '16 Psyche',

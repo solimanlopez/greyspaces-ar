@@ -24,7 +24,7 @@ export function montar(contenedor, opciones = {}) {
     pmrem.dispose();
   } catch {}
   const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 60);
-  camera.position.set(1.06, 0.66, 2.28);
+  camera.position.set(2.3, 1.5, 4.2);
 
   const raiz = new THREE.Group();
   const guia = crearGuia(); guia.visible = !!capas.guia; raiz.add(guia);
@@ -33,7 +33,7 @@ export function montar(contenedor, opciones = {}) {
   scene.add(raiz);
 
   const ctr = new OrbitControls(camera, renderer.domElement);
-  ctr.target.set(0, 0.18, 0);
+  ctr.target.set(0, 0.55, 0.9);
   ctr.enableDamping = true;
   ctr.autoRotate = true;
   ctr.autoRotateSpeed = 0.4;
