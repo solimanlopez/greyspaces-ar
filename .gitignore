@@ -16,3 +16,4 @@ node_modules/
 # para que en sala no dependa de ningun CDN.
 greyspaces-ar-v2.zip
 _to_delete_v2.zip
+*.zip

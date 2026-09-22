@@ -44,58 +44,105 @@ html, body {
 }
 #ar video, #ar canvas { object-fit: cover; }
 
-/* ---------- Portada ---------- */
+/* ---------- Portada ----------
+   Una cartela: cabecera, imagen, texto. Sin brillos ni degradados; el único
+   movimiento es el de la señal. */
 #portada {
   position: fixed; inset: 0; z-index: 40;
-  display: grid; place-items: center;
-  padding: calc(24px + var(--safe-t)) 24px calc(24px + var(--safe-b));
-  background:
-    radial-gradient(120% 90% at 50% 0%, #14181c 0%, var(--fondo) 62%);
-  transition: opacity .55s ease, visibility .55s;
+  display: grid; grid-template-rows: auto 1fr auto;
+  padding: calc(16px + var(--safe-t)) 20px calc(16px + var(--safe-b));
+  background: #07090b;
+  overflow: hidden;
+  transition: opacity .6s ease, visibility .6s;
 }
 #portada.fuera { opacity: 0; visibility: hidden; pointer-events: none; }
+#cielo { display: block; width: 100%; height: 100%; min-height: 0; }
 
-.marco {
-  width: 100%; max-width: 420px;
-  border: 1px solid var(--linea);
-  padding: 30px 26px 28px;
+.cabecera {
+  display: grid; gap: 3px;
+  padding-bottom: 12px; border-bottom: 1px solid var(--linea);
+  font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--gris-tenue);
 }
+.cabecera .kicker { color: #e6e9eb; }
+
+.marco { width: 100%; max-width: 440px; justify-self: center; animation: aparecer 1s .2s ease both; }
 
 /* Las barras del Tratado, sin letras. */
-.barras { display: grid; gap: 5px; margin-bottom: 26px; }
-.barras i {
-  display: block; height: 5px; width: var(--w);
-  background: var(--gris); opacity: .30;
-}
+.barras { display: grid; gap: 4px; margin: 14px 0 14px; width: 40%; }
+.barras i { display: block; height: 4px; width: var(--w); background: var(--gris); opacity: .28; }
 .barras i:nth-child(4) { background: var(--claiming); opacity: .85; }
 
 h1 {
-  margin: 0 0 6px; font-size: 30px; font-weight: 300;
-  letter-spacing: .22em; color: #fff;
+  margin: 0 0 2px; font-size: clamp(26px, 7.6vw, 36px); font-weight: 300;
+  letter-spacing: .2em; color: #fff; line-height: 1.1; white-space: nowrap;
 }
 #subtitulo {
-  margin: 0 0 20px; font-size: 12px; letter-spacing: .14em;
+  margin: 0 0 12px; font-size: 11.5px; letter-spacing: .16em;
   text-transform: uppercase; color: var(--gris-tenue);
 }
-.cuerpo { margin: 0 0 26px; font-size: 15px; line-height: 1.62; color: #cfd4d8; }
+
+.lectura {
+  display: grid; grid-template-columns: 1fr auto; gap: 0 12px; align-items: baseline;
+  padding: 9px 0; margin-bottom: 12px;
+  border-top: 1px solid var(--linea); border-bottom: 1px solid var(--linea);
+  font-variant-numeric: tabular-nums;
+}
+.lectura-eti { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--gris-tenue); }
+.lectura-hito { font-size: 11px; letter-spacing: .18em; color: var(--campo); }
+.lectura-num { grid-column: 1 / -1; font-size: 24px; letter-spacing: .03em; color: #fff; }
+.lectura-num strong { font-weight: 300; color: var(--campo); }
+
+.cuerpo { margin: 0 0 16px; font-size: 14px; line-height: 1.55; color: #cfd4d8; }
 
 #btn-entrar {
   width: 100%; padding: 15px 18px;
   background: transparent; color: #fff;
   border: 1px solid var(--campo);
-  font: inherit; font-size: 14px; letter-spacing: .16em; text-transform: uppercase;
+  font: inherit; font-size: 13px; letter-spacing: .2em; text-transform: uppercase;
   cursor: pointer; transition: background .2s ease, color .2s ease;
 }
-#btn-entrar:hover:not(:disabled) { background: var(--campo); color: #052014; }
+#btn-entrar:hover:not(:disabled), #btn-entrar:active:not(:disabled) { background: var(--campo); color: #041a08; }
 #btn-entrar:disabled { opacity: .55; cursor: default; border-color: var(--linea); }
 
-.pista { margin: 14px 0 0; font-size: 12px; color: var(--gris-tenue); text-align: center; }
+.pista { margin: 10px 0 0; font-size: 12px; color: var(--gris-tenue); text-align: center; }
 
-#error {
-  margin: 16px 0 0; font-size: 13px; line-height: 1.5;
-  color: var(--claiming); display: none;
-}
+#error { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: var(--claiming); display: none; }
 #error.visible { display: block; }
+
+@keyframes aparecer { from { opacity: 0; } to { opacity: 1; } }
+
+/* Móviles bajos (iPhone SE y similares): menos aire, el asteroide manda. */
+@media (max-height: 720px) {
+  .barras { display: none; }
+  .marco { margin-top: 12px; }
+  #subtitulo { margin-bottom: 8px; }
+  .lectura { padding: 6px 0; margin-bottom: 8px; }
+  .lectura-num { font-size: 20px; }
+  .cuerpo { font-size: 13px; line-height: 1.45; margin-bottom: 10px; }
+  #btn-entrar { padding: 12px 18px; }
+  .pista { margin-top: 6px; }
+  .enlaces { margin-top: 8px; padding-top: 6px; }
+}
+
+/* ---------- Enlaces permanentes ---------- */
+.enlaces {
+  display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px;
+  margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--linea);
+  font-size: 12px; letter-spacing: .03em;
+}
+.enlaces a { color: var(--gris-tenue); text-decoration: none; padding: 4px 0; }
+.enlaces a:hover, .enlaces a:focus-visible { color: #fff; }
+.enlaces a.pdf { color: #e6e9eb; }
+
+/* En la vista AR: barra fina abajo, siempre visible, sin tapar la cámara. */
+.enlaces-ar {
+  position: fixed; z-index: 20; left: 0; right: 0;
+  bottom: calc(4px + var(--safe-b));
+  margin: 0; padding: 6px 14px; border-top: 0; justify-content: center; gap: 4px 18px; font-size: 11px;
+}
+.enlaces-ar a { padding: 6px 2px; text-shadow: 0 1px 8px rgba(0, 0, 0, .9); }
+body.previa .enlaces-ar { display: none; }
 
 /* ---------- Estado del anclaje ---------- */
 .estado {
@@ -123,7 +170,7 @@ h1 {
 #btn-recolocar {
   position: fixed; z-index: 20; display: none;
   left: 50%; transform: translateX(-50%);
-  bottom: calc(64px + var(--safe-b));
+  bottom: calc(92px + var(--safe-b));
   padding: 10px 16px;
   background: rgba(8, 10, 12, .62);
   backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
@@ -166,7 +213,7 @@ body.libre #btn-recolocar { display: block; }
 /* ---------- Pie ---------- */
 #pie {
   position: fixed; z-index: 20;
-  left: 0; right: 0; bottom: calc(14px + var(--safe-b));
+  left: 0; right: 0; bottom: calc(40px + var(--safe-b));
   display: grid; justify-items: center; gap: 3px;
   padding: 0 16px; pointer-events: none;
   opacity: 0; transition: opacity .35s ease;
@@ -181,7 +228,7 @@ body.libre #btn-recolocar { display: block; }
 /* ---------- Aviso ---------- */
 #aviso {
   position: fixed; z-index: 30;
-  left: 50%; bottom: calc(78px + var(--safe-b));
+  left: 50%; bottom: calc(104px + var(--safe-b));
   transform: translate(-50%, 8px);
   padding: 11px 18px; max-width: 88vw;
   background: rgba(8, 10, 12, .86);

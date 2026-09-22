@@ -4,9 +4,31 @@
    tracking, así que la superposición va con DOM y transiciones CSS.
    ========================================================================== */
 
-import { MARCADORES, CAPAS, TEXTOS, SENAL, HITOS } from './config.js';
+import { MARCADORES, CAPAS, TEXTOS, SENAL, HITOS, ENLACES } from './config.js';
 
 const $ = (s, r = document) => r.querySelector(s);
+
+/* Enlaces permanentes: PDF de la obra, web del artista, iridia.world.
+   Se pintan en la portada y en la barra inferior de la vista AR. */
+export function montarEnlaces() {
+  const items = [
+    { texto: 'About the work (PDF)', url: ENLACES.pdf, clase: 'pdf' },
+    { texto: ENLACES.artista.texto, url: ENLACES.artista.url },
+    { texto: ENLACES.iridia.texto, url: ENLACES.iridia.url },
+  ];
+  document.querySelectorAll('.enlaces').forEach((cont) => {
+    cont.innerHTML = '';
+    for (const it of items) {
+      const a = document.createElement('a');
+      a.href = it.url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      a.textContent = it.texto;
+      if (it.clase) a.classList.add(it.clase);
+      cont.appendChild(a);
+    }
+  });
+}
 
 export class HUD {
   constructor({ onCapa, modo = 'imagen' }) {
@@ -29,13 +51,13 @@ export class HUD {
 
   _construirCapas() {
     const nombres = {
-      campoCercano: 'Campo cercano',
-      estacionaria: 'Onda circular',
-      cintas: 'Onda en cinta',
-      radiacion: 'Radiación',
-      paquete: 'Pulso e hitos',
+      campoCercano: 'Near field',
+      estacionaria: 'Circular wave',
+      cintas: 'Ribbon wave',
+      radiacion: 'Radiation',
+      paquete: 'Pulse & milestones',
       psyche: '16 Psyche',
-      guia: 'Guía de encaje',
+      guia: 'Alignment guide',
     };
     for (const [clave, etiqueta] of Object.entries(nombres)) {
       const b = document.createElement('button');
@@ -53,15 +75,16 @@ export class HUD {
   actualizar(info, hitoActivo) {
     if (info.estado !== this._ultimoEstado) {
       this._ultimoEstado = info.estado;
+      const T = TEXTOS.trigger;
       const mapa = {
         // modo imagen
-        buscando: ['buscando', this.modo === 'libre' ? 'Busca una superficie' : 'Apunta a la cartela'],
-        seguido: ['ok', 'Anclada'],
-        reteniendo: ['reten', 'Cartela fuera de vista'],
-        perdido: ['buscando', 'Vuelve a mirar la cartela'],
+        buscando: ['buscando', this.modo === 'libre' ? 'Looking for a surface' : `Point at the ${T}`],
+        seguido: ['ok', 'Anchored'],
+        reteniendo: ['reten', `${T[0].toUpperCase() + T.slice(1)} out of view`],
+        perdido: ['buscando', `Look back at the ${T}`],
         // modo libre
-        apuntando: ['apunta', 'Centra la cartela y toca'],
-        anclada: ['ok', 'Anclada · camina'],
+        apuntando: ['apunta', `Centre the ${T} and tap`],
+        anclada: ['ok', 'Anchored · walk around'],
       };
       const [clase, texto] = mapa[info.estado] || mapa.buscando;
       this.estado.className = 'estado ' + clase;
@@ -75,7 +98,7 @@ export class HUD {
       const s = h.segundosLuz;
       const min = Math.floor(s / 60);
       this.pieDato.textContent =
-        `${h.etiqueta} km · ${min} min ${String(Math.round(s % 60)).padStart(2, '0')} s luz`;
+        `${h.etiqueta} km · ${min} min ${String(Math.round(s % 60)).padStart(2, '0')} s at light speed`;
       this.pie.classList.add('visible');
     } else {
       this.pie.classList.remove('visible');
@@ -117,13 +140,13 @@ export class Calibrador {
     });
 
     const filas = [
-      ['x', 'X · a lo largo de los tubos', -4, 4, 0.005, 'm'],
-      ['y', 'Y · altura', -2, 2, 0.005, 'm'],
-      ['z', 'Z · hacia el espectador', -3, 3, 0.005, 'm'],
-      ['rx', 'Giro X', -180, 180, 1, '°'],
-      ['ry', 'Giro Y', -180, 180, 1, '°'],
-      ['rz', 'Giro Z', -180, 180, 1, '°'],
-      ['w', 'Ancho impreso', 0.05, 0.9, 0.001, 'm'],
+      ['x', 'X · along the tubes', -4, 4, 0.005, 'm'],
+      ['y', 'Y · height', -2, 2, 0.005, 'm'],
+      ['z', 'Z · towards the viewer', -3, 3, 0.005, 'm'],
+      ['rx', 'Rotation X', -180, 180, 1, '°'],
+      ['ry', 'Rotation Y', -180, 180, 1, '°'],
+      ['rz', 'Rotation Z', -180, 180, 1, '°'],
+      ['w', 'Printed width', 0.05, 0.9, 0.001, 'm'],
     ];
     const cont = $('#cal-campos');
     for (const [clave, etiqueta, min, max, paso, u] of filas) {
@@ -182,8 +205,8 @@ export class Calibrador {
         rotacionDeg: m.rotacionDeg.map((v) => Number(v.toFixed(2))),
       })), null, 2) + ';';
     navigator.clipboard?.writeText(txt).then(
-      () => this.hud.mensaje('Calibración copiada. Pégala en js/config.js'),
-      () => { console.log(txt); this.hud.mensaje('No se pudo copiar; está en la consola'); }
+      () => this.hud.mensaje('Calibration copied. Paste it into js/config.js'),
+      () => { console.log(txt); this.hud.mensaje('Could not copy; it is in the console'); }
     );
   }
 }

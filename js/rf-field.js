@@ -672,8 +672,8 @@ function etiquetaTextura(hito) {
   const seg = hito.segundosLuz;
   const min = Math.floor(seg / 60);
   const rest = Math.round(seg % 60);
-  const tiempo = min > 0 ? `${min} min ${String(rest).padStart(2, '0')} s luz`
-                         : `${Math.round(seg)} s luz`;
+  const tiempo = min > 0 ? `${min} min ${String(rest).padStart(2, '0')} s at light speed`
+                         : `${Math.round(seg)} s at light speed`;
 
   x.fillStyle = 'rgba(191,198,204,0.55)';
   x.font = '300 34px Lato, "Helvetica Neue", Arial, sans-serif';

@@ -5,14 +5,14 @@ IRIDIA / SLStudio
 
 Genera dos archivos a partir de la URL de la obra:
 
-  targets/imprimir/qr-cartela.png   A5 vertical a 300 ppp, en el mismo lenguaje
-                                    que la cartela A: papel, barras del Tratado,
-                                    el claiming, Lato, y el QR en tinta
+  targets/imprimir/qr-cartela.png   el QR (80 mm) con un borde fino y
+                                    "AR Grey Spaces" debajo, a 300 ppp
   targets/imprimir/qr-solo.png      el QR limpio con su zona de silencio, para
                                     ponerlo donde haga falta
 
 Uso:
     python3 tools/generar-qr.py https://ar.iridia.world
+    python3 tools/generar-qr.py https://ar.iridia.world --completa   (A5 con instrucciones)
 """
 
 import os
@@ -63,7 +63,33 @@ def barras(d, x, y, ancho, alto, n=9, semilla=3):
     d.rectangle([vx, y - hueco * 0.4, vx + hueco * 0.28, y + alto + hueco * 0.1], fill=TINTA)
 
 
-def cartela(url, dpi=300, titulo="AR Grey Areas"):
+def cartela(url, dpi=300, titulo="AR Grey Spaces", lado_mm=80.0):
+    """Versión mínima: el QR con un borde fino y el título debajo. Nada más."""
+    px = lambda mm: int(round(mm / 25.4 * dpi))
+    margen = px(6)             # papel alrededor del borde
+    hueco = px(4)              # aire entre el borde y el QR
+    lado = px(lado_mm)
+    f_tit = fuente(px(7.4))
+    alto_tit = px(11)
+
+    W = margen * 2 + hueco * 2 + lado
+    H = margen * 2 + hueco * 2 + lado + alto_tit
+    img = Image.new("RGB", (W, H), PAPEL)
+    d = ImageDraw.Draw(img)
+
+    # Borde fino alrededor del QR
+    x0, y0 = margen, margen
+    x1, y1 = W - margen, margen + hueco * 2 + lado
+    d.rectangle([x0, y0, x1, y1], outline=TINTA, width=max(1, px(0.35)))
+
+    img.paste(qr_imagen(url, lado), (margen + hueco, margen + hueco))
+
+    d.text((W / 2, y1 + px(3.2)), titulo, font=f_tit, fill=TINTA, anchor="ma")
+    return img
+
+
+def cartela_completa(url, dpi=300, titulo="AR Grey Spaces"):
+    """Versión A5 con cabecera, barras, URL e instrucciones (--completa)."""
     px = lambda mm: int(round(mm / 25.4 * dpi))
     W, H = px(A5[0]), px(A5[1])
     img = Image.new("RGB", (W, H), PAPEL)
@@ -120,13 +146,16 @@ def cartela(url, dpi=300, titulo="AR Grey Areas"):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print("uso: generar-qr.py https://ar.iridia.world"); sys.exit(1)
-    url = sys.argv[1].strip()
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    completa = "--completa" in sys.argv
+    if not args:
+        print("uso: generar-qr.py https://ar.iridia.world [--completa]"); sys.exit(1)
+    url = args[0].strip()
     salida = os.path.join(os.path.dirname(__file__), "..", "targets", "imprimir")
     os.makedirs(salida, exist_ok=True)
 
-    cartela(url).save(os.path.join(salida, "qr-cartela.png"), optimize=True)
+    (cartela_completa if completa else cartela)(url).save(
+        os.path.join(salida, "qr-cartela.png"), optimize=True)
     qr_imagen(url, 1600).save(os.path.join(salida, "qr-solo.png"), optimize=True)
     print("ok:", url)
     print(" ", os.path.join(salida, "qr-cartela.png"))

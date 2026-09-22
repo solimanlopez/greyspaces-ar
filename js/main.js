@@ -23,7 +23,8 @@ import { AnclajeMultiMarcador } from './anchoring.js';
 import { CampoRF } from './rf-field.js';
 import { Asteroide } from './psyche.js';
 import { crearGuia, crearFantasmasMarcadores } from './piece.js';
-import { HUD, Calibrador } from './ui.js';
+import { HUD, Calibrador, montarEnlaces } from './ui.js';
+import { arrancarPortada } from './portada.js';
 import * as XR from './xr.js';
 
 const params = new URLSearchParams(location.search);
@@ -238,7 +239,7 @@ async function arrancarLibre() {
   const sesion = new XR.SesionLibre({
     renderer, scene, raiz: obra.raiz, fantasma,
     overlay: document.body,
-    alColocar: () => { nacimiento.empezar(); hud.mensaje('Anclada. Ya puedes caminar y rodearla.', 2600); },
+    alColocar: () => { nacimiento.empezar(); hud.mensaje('Anchored. You can now walk around it.', 2600); },
   });
   sesion.alTerminar = () => {
     renderer.setAnimationLoop(null);
@@ -249,7 +250,7 @@ async function arrancarLibre() {
   $('#btn-recolocar').addEventListener('click', () => {
     sesion.recolocar();
     nacimiento.set(0);
-    hud.mensaje('Apunta al centro de la cartela y toca la pantalla.', 3000);
+    hud.mensaje(`Centre the ${TEXTOS.trigger} and tap the screen.`, 3000);
   });
 
   await sesion.iniciar();
@@ -335,6 +336,8 @@ async function arrancarPrevia() {
    ========================================================================= */
 $('#titulo').textContent = TEXTOS.titulo;
 $('#subtitulo').textContent = TEXTOS.subtitulo;
+montarEnlaces();
+if (!MODO_PREVIA) arrancarPortada();
 
 /* Variant Launch, si hay clave: carga su SDK y espera a que diga si hay WebXR.
    En iPhone redirige a su Launch Card y vuelve dentro de un navegador con
@@ -367,7 +370,7 @@ async function elegirModo() {
 async function iniciar() {
   const btn = $('#btn-entrar');
   btn.disabled = true;
-  btn.textContent = 'Abriendo la cámara…';
+  btn.textContent = 'Opening the camera…';
   try {
     const modo = await elegirModo();
     if (document.fonts) { document.fonts.load('300 72px Lato').catch(() => {}); }
@@ -386,10 +389,10 @@ async function iniciar() {
   } catch (e) {
     console.error(e);
     btn.disabled = false;
-    btn.textContent = 'Reintentar';
+    btn.textContent = 'Try again';
     $('#error').textContent =
-      'No se pudo abrir la cámara. Comprueba que la página va por https y que ' +
-      'el navegador tiene permiso de cámara. En iPhone hace falta Safari.';
+      'The camera could not be opened. Make sure the page is served over https ' +
+      'and the browser has camera permission. On iPhone, open it in Safari.';
     $('#error').classList.add('visible');
   }
 }
@@ -399,10 +402,10 @@ async function iniciar() {
   const modo = await elegirModo();
   const pista = $('.pista');
   if (modo === 'libre') {
-    pista.textContent = 'Apunta al centro de la cartela, toca la pantalla, y camina.';
-    $('#btn-entrar').textContent = 'Ver la obra';
+    pista.textContent = `Centre the ${TEXTOS.trigger}, tap the screen, and walk.`;
+    $('#btn-entrar').textContent = 'Enter the work';
   } else {
-    pista.textContent = 'Apunta con la cámara a la cartela de sala.';
+    pista.textContent = `Point the camera at the ${TEXTOS.trigger} beside the work.`;
   }
 })();
 

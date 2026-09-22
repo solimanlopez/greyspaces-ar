@@ -77,31 +77,59 @@ export const HITOS = Array.from({ length: PIEZA.nBloques }, (_, i) => {
 });
 
 /* --------------------------------------------------------------------------
-   LA CARTELA
-   Una sola imagen impresa que emplaza la obra. Sirve de dos maneras:
+   LOS TRIGGERS (en la interfaz se llaman "celestial body")
+   Imágenes físicas que emplazan la obra. Sirven de dos maneras:
 
      · en modo libre (WebXR, Android): el visitante apunta la retícula al
-       centro de la cartela y toca la pantalla. La obra se ancla a ese punto
-       del espacio y ya puede caminar y rodearla sin volver a mirar el papel.
-     · en modo imagen (iPhone y respaldo): el móvil reconoce la cartela y la
+       centro del trigger y toca la pantalla. La obra se ancla a ese punto
+       del espacio y ya puede caminar y rodearla sin volver a mirarlo.
+     · en modo imagen (iPhone y respaldo): el móvil reconoce el trigger y la
        obra se sostiene mientras esté a la vista o unos segundos después.
 
-   anchoImpreso : ancho real impreso, en metros. De aquí sale toda la escala.
-   posicion     : [x, y, z] del CENTRO de la cartela en coordenadas de pieza.
-                  Con [0, 0.34, -0.12] queda en la pared de fondo, centrada,
-                  a 34 cm sobre los tubos y 12 cm por detrás de su eje.
-   rotacionDeg  : [0,0,0] plana en la pared mirando al espectador;
-                  [-90,0,0] tumbada boca arriba sobre una peana.
+   Hay tres compilados en targets/targets.mind, EN ESTE ORDEN:
+     0  QR   la tarjeta del QR (targets/imprimir/qr-cartela.png) en el suelo,
+             junto a la obra. Es el trigger principal: la misma tarjeta que
+             abre la app sirve para anclarla. Imprimir a 30 cm de ancho, mate.
+     1  A    la plancha de cobre con el mezzotint de 16 Psyche.
+     2  A2   la misma plancha con el contraste invertido: si el cobre pulido
+             refleja algo oscuro y queda más oscuro que la marca del láser,
+             este es el que engancha. Misma posición que A.
 
-   Se pueden añadir más cartelas al array si la sala lo pide; el orden debe
-   coincidir con el orden de compilación de targets/targets.mind (A, B, C, D).
+   anchoImpreso : ancho real, en metros, de la imagen COMPLETA que se compiló
+                  (la tarjeta entera; la plancha entera, no solo el grabado).
+                  De aquí sale toda la escala.
+   posicion     : [x, y, z] del CENTRO del trigger en coordenadas de pieza.
+   rotacionDeg  : [0,0,0] plano en la pared mirando al espectador;
+                  [-90,0,0] tumbado boca arriba en el suelo o una peana, con
+                  el borde superior de la imagen hacia los tubos (el título
+                  "AR Grey Spaces" queda del lado del visitante).
+
+   Si cambias la tarjeta o el grabado, recompila con tools/compilar.html en
+   este mismo orden y ajusta aquí.
    -------------------------------------------------------------------------- */
 export const MARCADORES = [
   {
+    id: 'QR',
+    nombre: 'QR card on the floor',
+    anchoImpreso: 0.300,                 // tarjeta impresa a 30 cm de ancho
+    // En el suelo, centrada en la obra, 55 cm hacia el visitante desde el eje
+    // de los tubos. Y = -0.04 porque el eje del tubo va a 4 cm del suelo
+    // (media altura del bloque). Afinar en sala con ?calibrar=1.
+    posicion: [0.0, -0.04, 0.55],
+    rotacionDeg: [-90, 0, 0],
+  },
+  {
     id: 'A',
-    nombre: 'Cartela principal',
-    anchoImpreso: 0.420,                 // A3 apaisado
-    posicion: [0.0, 0.34, -0.12],
+    nombre: 'Copper plate',
+    anchoImpreso: 0.300,                 // ancho real de la plancha
+    posicion: [0.0, 0.34, -0.12],        // pared de fondo; medir en sala
+    rotacionDeg: [0, 0, 0],
+  },
+  {
+    id: 'A2',
+    nombre: 'Copper plate (inverted)',
+    anchoImpreso: 0.300,
+    posicion: [0.0, 0.34, -0.12],        // siempre igual que A
     rotacionDeg: [0, 0, 0],
   },
 ];
@@ -219,8 +247,26 @@ export const RENDIMIENTO = {
   baja:  { planos: 24, arcos: 5, segmentos: 16, anillos: 24, ondaAnillos: 64,  estela: 70,  enlace: 150 },
 }[CALIDAD];
 
+/* --------------------------------------------------------------------------
+   TEXTOS DE LA INTERFAZ
+   La app publicada va en inglés. El trigger físico se llama "celestial body".
+   Los hitos se escriben con punto de millar (39.573.000) porque así van
+   impresos sobre los bloques de la instalación.
+   -------------------------------------------------------------------------- */
 export const TEXTOS = {
   titulo: 'GREY SPACES',
-  subtitulo: 'IRIDIA · la parte invisible de la obra',
-  frecuencia: `${(SENAL.frecuenciaHz / 1e9).toLocaleString('de-DE')} GHz · banda X`,
+  subtitulo: 'IRIDIA · the invisible part of the work',
+  frecuencia: `${(SENAL.frecuenciaHz / 1e9).toLocaleString('de-DE')} GHz · X band`,
+  trigger: 'celestial body',
+};
+
+/* --------------------------------------------------------------------------
+   ENLACES
+   Siempre visibles en la interfaz. El PDF de la obra va en docs/; para
+   cambiarlo basta con sustituir el archivo por otro con el mismo nombre.
+   -------------------------------------------------------------------------- */
+export const ENLACES = {
+  pdf: 'docs/grey-spaces.pdf',
+  artista: { texto: 'solimanlopez.com', url: 'https://www.solimanlopez.com' },
+  iridia: { texto: 'iridia.world', url: 'https://iridia.world' },
 };

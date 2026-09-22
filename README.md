@@ -5,23 +5,45 @@ tubos de cobre, el pulso recorriendo los diez hitos de distancia, y 16 Psyche
 flotando en el centro de la obra.
 
 Funciona en el navegador del móvil del visitante, iPhone y Android, sin instalar
-nada. Se entra por un QR en sala.
+nada. Se entra por un QR en sala. La app publicada va en inglés; este README y
+los comentarios del código, en castellano.
+
+**Grey Spaces Exhibition · Foundry, Downtown Dubai.** La bienvenida lleva esa
+mención, el mezzotint de 16 Psyche, y el contador de distancias corriendo al
+paso del pulso. Sin brillos ni efectos de plantilla: una cartela.
 
 ---
 
 ## Cómo se ancla
 
-Una sola cartela emplaza la obra. Después, la pieza se queda quieta y es el
-visitante quien se mueve. Lo que sostiene la obra en su sitio depende de lo
+Un trigger físico emplaza la obra (en la interfaz se le llama *celestial body*,
+nunca cartela). Hay dos, y los dos van compilados en `targets/targets.mind`:
+
+- **La tarjeta del QR en el suelo, junto a la obra.** Es el principal. La misma
+  tarjeta que abre la app sirve para anclarla: el visitante escanea, se abre la
+  app, apunta al mismo QR y aparece la obra. Imprimirla a **30 cm de ancho**,
+  papel mate, plastificado mate o bajo metacrilato mate. Colocarla con el
+  título "AR Grey Spaces" del lado del visitante. Probada en simulación de pie
+  mirando al suelo en ángulo, cerca y lejos: ancla en menos de tres segundos.
+- **La plancha de cobre con el mezzotint de 16 Psyche.** También ancla, en sala
+  clara y en sala oscura. Su único punto débil es el cobre pulido: si refleja
+  algo oscuro y queda más oscuro que la marca del láser, el contraste se
+  invierte y el seguimiento la pierde. Por eso va compilada dos veces, normal e
+  invertida, apuntando al mismo sitio (`A` y `A2` en `config.js`). Cuando la
+  plancha esté colgada hay que medir su posición respecto a los tubos y ponerla
+  en `MARCADORES`.
+
+Después de anclarse, la pieza se queda quieta y es el visitante quien se
+mueve. Lo que sostiene la obra en su sitio depende de lo
 que sepa hacer el móvil, y en 2026 eso divide el mundo en dos:
 
 - **Modo libre, Android con Chrome.** WebXR, o sea SLAM de verdad. El
-  visitante centra la retícula en la cruz de la cartela y toca la pantalla. La
+  visitante centra la retícula en el trigger y toca la pantalla. La
   obra se ancla a ese punto del espacio (`XRAnchor`) y ya puede caminar a lo
   largo de los tubos, rodear la pieza, agacharse. Sigue ahí. Hay un botón de
   recolocar por si el primer anclaje no convence.
 - **Modo imagen, iPhone y respaldo.** Safari no expone WebXR. El móvil
-  reconoce la cartela y sostiene la obra mientras la tenga a la vista, y unos
+  reconoce el trigger y sostiene la obra mientras lo tenga a la vista, y unos
   ocho segundos después con el giroscopio. Si el visitante camina, se despega.
 - **iPhone en modo libre: Variant Launch.** Inyecta WebXR en Safari vía App
   Clip. Plan gratuito hasta 3.000 aperturas al mes, sin tarjeta; Basic 99 $/mes
@@ -67,7 +89,7 @@ la webcam funciona sin certificado.
 
 El modo mesa (`index.html?mesa=1`, o el primer botón de la página de inicio)
 pone el origen de la obra sobre el propio marcador y la encoge a un palmo. Abre
-`targets/imprimir/marcador-A.png` en el móvil o imprímela, ponla frente a la
+`targets/imprimir/qr-cartela.png` en el móvil o imprímela, ponla frente a la
 webcam, y la obra aparece flotando encima. Con `?mesa=0.30` sale mayor.
 
 Sin el modo mesa la obra aparece donde dicen las medidas de `config.js`, o sea a
@@ -84,7 +106,7 @@ inicio.html                 página de inicio con todos los modos
 index.html                  la aplicación
 js/config.js                TODO lo que hay que tocar para montarla
 js/main.js                  arranque, modo AR y modo previa
-js/anchoring.js             modo imagen: anclaje por cartela y retención
+js/anchoring.js             modo imagen: anclaje por trigger y retención
 js/xr.js                    modo libre: retícula, colocación y anclas WebXR
 js/rf-field.js              el campo de radiofrecuencia
 js/psyche.js                el asteroide
@@ -93,17 +115,34 @@ js/ui.js                    estado, capas y panel de calibración
 css/                        estilos y Lato autoalojada
 vendor/                     three.js 0.160 y MindAR 1.2.5, servidos en local
 targets/targets.mind        archivo de seguimiento ya compilado
-targets/imprimir/           las cuatro cartelas a 300 ppp, listas para imprenta,
-                            y la cartela del QR (qr-cartela.png, A5) con el QR suelto
-targets/compilar/           las mismas a 1024 px, para recompilar si las cambias
-tools/generar-marcadores.py genera las cartelas
-tools/generar-qr.py         genera la cartela del QR: python3 tools/generar-qr.py https://ar.iridia.world
+targets/imprimir/           qr-cartela.png (el trigger principal, imprimir a 30 cm)
+                            y qr-solo.png; las cartelas de papel antiguas siguen ahí
+targets/compilar/           qr-A.png, plancha-A.png y plancha-A-inv.png: lo que está
+                            compilado en targets.mind, en ese orden
+tools/generar-qr.py         genera la tarjeta del QR: python3 tools/generar-qr.py https://ar.iridia.world
+tools/generar-pdf-placeholder.py  genera un docs/grey-spaces.pdf provisional
+docs/grey-spaces.pdf        el PDF de la obra que abre "About the work". SUSTITUIR
+                            por el definitivo con el mismo nombre y publicar
+img/psyche-mezzotint.webp   el grabado de la plancha, para la bienvenida
+js/portada.js               la animación de la bienvenida (canvas 2D, sin librerías)
 tools/compilar.html         compila targets.mind en local, sin subir nada
 tools/servidor.js           servidor estático, por si no hay python3
 vercel.json                 cabeceras de caché para la publicación
 .vercelignore               lo que no viaja al servidor
 models/                     aquí va psyche.glb si quieres el modelo bueno
 ```
+
+---
+
+## Enlaces y PDF
+
+En la bienvenida y en la barra inferior de la vista AR hay tres enlaces fijos:
+*About the work (PDF)*, *solimanlopez.com* e *iridia.world*. Se definen en
+`ENLACES` dentro de `js/config.js`.
+
+El PDF vive en `docs/grey-spaces.pdf`. Para poner el bueno: copiar tu PDF a la
+carpeta `docs`, con ese mismo nombre, sustituyendo al que hay; luego
+`GUARDAR-CAMBIOS.command` y `PUBLICAR.command`. Nada más que tocar.
 
 ---
 
@@ -115,44 +154,45 @@ Abre `js/config.js` y rellena el bloque `PIEZA` con las medidas reales, en
 metros: separación entre los ejes de los tubos, radio del tubo, paso entre
 bloques, dimensiones del bloque y voladizo. De ahí sale toda la escala.
 
-### 2. Imprimir la cartela
+### 2. Imprimir la tarjeta del QR
 
-En `targets/imprimir/marcador-A.png`, a 300 ppp. **A3 apaisado, mate.** El
-papel brillante refleja los focos y el seguimiento se cae.
+`targets/imprimir/qr-cartela.png` (100 x 111 mm a 300 ppp) impresa a **30 cm de
+ancho**, mate. Es a la vez la entrada a la app y el trigger, así que tiene que
+sobrevivir a la sala: plastificado mate o bajo un metacrilato mate, nunca
+brillante, que los focos se reflejan y el seguimiento se cae. El papel puede
+ir pegado sobre un cartón pluma o una plancha fina para que no se levante.
 
-En modo imagen una cartela se sigue bien hasta unas 6 u 8 veces su anchura. En
-modo libre solo hace falta verla una vez, pero la retícula tiene que poder
-centrarse en la cruz con comodidad.
+En modo imagen un trigger se sigue bien hasta unas 6 u 8 veces su anchura; a
+30 cm eso son unos 2 m, más que de sobra para alguien de pie mirándolo. En
+modo libre solo hace falta verlo una vez.
 
-| Ancho impreso | Distancia de entrada |
-|---|---|
-| A4, 297 mm | hasta ~2 m |
-| A3, 420 mm | hasta ~3 m |
-| A2, 594 mm | hasta ~4 m |
+Anota el ancho real en metros: va en `anchoImpreso`. Si lo imprimes a otro
+tamaño, cambia ese número y nada más.
 
-Anota el ancho real en milímetros: va en `anchoImpreso`.
+### 3. Colocar los triggers
 
-### 3. Colgarla y marcar el suelo
+**La tarjeta** va en el suelo, delante de la obra, centrada en el recorrido de
+los tubos y a medio metro largo del eje de los tubos hacia el visitante, con el
+título *AR Grey Spaces* del lado del visitante. Fíjala con cinta de doble cara
+de moqueta para que nadie la mueva con el pie.
 
-La cartela va en la pared de fondo, centrada sobre el recorrido de los tubos, a
-la altura de la vista. En el suelo, a dos o tres metros de la pared y frente a
-la cartela, una marca: un círculo de vinilo o cinta. Es desde donde el
-visitante apunta y toca; después ya no importa dónde esté.
+**La plancha de cobre** va donde la obra la pida (pared de fondo o peana). Mide
+la posición de su centro respecto al centro de los tubos.
 
-Si la sala lo pide se pueden añadir más cartelas al array `MARCADORES`; el
-orden tiene que coincidir con el de compilación de `targets.mind` (A, B, C, D).
-
-### 4. Decirle a la app dónde está la cartela
+### 4. Decirle a la app dónde está cada trigger
 
 En `MARCADORES` de `js/config.js`:
 
-- `anchoImpreso`: el ancho real impreso, en metros.
-- `posicion`: `[x, y, z]` del centro de la cartela, en metros, medidos desde el
+- `anchoImpreso`: el ancho real, en metros, de la imagen completa (la tarjeta
+  entera, la plancha entera).
+- `posicion`: `[x, y, z]` del centro del trigger, en metros, medidos desde el
   centro del recorrido de los tubos. `+X` a lo largo de los tubos, `+Y` arriba,
-  `+Z` hacia el espectador. Centrada en la pared de fondo, a 34 cm sobre los
-  tubos y 12 cm por detrás de su eje: `[0, 0.34, -0.12]`.
-- `rotacionDeg`: `[0,0,0]` plana en la pared mirando al espectador;
-  `[-90,0,0]` tumbada boca arriba sobre una peana.
+  `+Z` hacia el espectador. La tarjeta en el suelo, 55 cm delante de los tubos:
+  `[0, -0.04, 0.55]` (el -0.04 es porque el eje del tubo va a 4 cm del suelo).
+  La plancha centrada en la pared de fondo, a 34 cm sobre los tubos y 12 cm
+  por detrás: `[0, 0.34, -0.12]`. `A2` lleva siempre lo mismo que `A`.
+- `rotacionDeg`: `[0,0,0]` plano en la pared mirando al espectador;
+  `[-90,0,0]` tumbado boca arriba en el suelo.
 
 Los mismos números valen para los dos modos.
 
@@ -160,11 +200,11 @@ Los mismos números valen para los dos modos.
 
 Abre la app con `?modo=imagen&calibrar=1` al final de la URL. Se enciende la capa **guía de
 encaje**: un calco en alambre de los tubos y los bloques, más un rectángulo rojo
-donde la app cree que está cada cartela.
+donde la app cree que está cada trigger.
 
-Apunta a una cartela y mueve los deslizadores hasta que el alambre se pegue al
-cobre real. Repite con cada cartela. Cuando las cuatro encajen, pulsa **copiar
-calibración** y pega el bloque en `js/config.js`.
+Apunta a un trigger y mueve los deslizadores hasta que el alambre se pegue al
+cobre real. Repite con el otro. Cuando encajen, pulsa **copy calibration** y
+pega el bloque en `js/config.js`.
 
 Esto es lo que hace que la obra se superponga de verdad y no flote a un palmo.
 
@@ -191,21 +231,26 @@ Domains, añadir por ejemplo `greyspaces.iridia.world` y crear en el DNS el CNAM
 que Vercel indique. El certificado lo emite Vercel solo. Cambiar de dominio no
 obliga a volver a subir nada: la app usa rutas relativas.
 
-Luego genera un QR con la URL y ponlo en la cartela de sala junto a una línea
-de instrucción: *apunta con la cámara a cualquiera de las cartelas*.
+El dominio de la obra es `ar.iridia.world`: en Vercel, Settings → Domains, y
+en Cloudflare un CNAME `ar` → `cname.vercel-dns.com` con el proxy apagado. No
+cambiar los nameservers del dominio, que se llevaría por delante el resto de
+iridia.world.
 
 En iPhone hay que abrirlo en **Safari**. Instagram, WhatsApp y otros navegadores
-embebidos no dan acceso a la cámara. Conviene decirlo en la cartela.
+embebidos no dan acceso a la cámara.
 
 ---
 
-## Si cambias las cartelas
+## Si cambias los triggers
 
-1. Edita `tools/generar-marcadores.py` y ejecútalo:
-   `python3 tools/generar-marcadores.py --dpi 300`
-2. Abre `tools/compilar.html` en el navegador, elige las imágenes de
-   `targets/compilar/` **en orden alfabético**, compila, y guarda el resultado
-   como `targets/targets.mind`.
+1. Si cambias la tarjeta: `python3 tools/generar-qr.py https://ar.iridia.world`
+   y luego `targets/compilar/qr-A.png` sale de reducir `qr-cartela.png` a 768 px
+   de ancho. Si cambias el grabado de la plancha: `plancha-A.png` es el grabado
+   sobre blanco a 768 x 1024 (la proporción de la plancha), y
+   `plancha-A-inv.png` el mismo invertido.
+2. Abre `tools/compilar.html` en el navegador, elige **qr-A, plancha-A,
+   plancha-A-inv, en ese orden**, compila, y guarda el resultado como
+   `targets/targets.mind`. El orden tiene que coincidir con `MARCADORES`.
 
 Una advertencia que costó descubrir: **un punteado fino y uniforme no sirve como
 marcador**. A dos metros la cámara lo promedia y lo convierte en un degradado
@@ -245,7 +290,7 @@ En `js/config.js`:
 - `SENAL.velocidadPaquete` — lo que tarda el pulso en recorrer la pieza.
 - `PSYCHE.posicion` y `PSYCHE.diametro` — dónde flota y cuánto ocupa.
 - `ANCLAJE.suavizado` — súbelo si tiembla, bájalo si va con retraso.
-- `ANCLAJE.retencionSegundos` — cuánto aguanta la obra sin ver ninguna cartela.
+- `ANCLAJE.retencionSegundos` — cuánto aguanta la obra sin ver ningún trigger.
 
 ---
 
