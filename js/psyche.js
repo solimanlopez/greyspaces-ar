@@ -204,13 +204,13 @@ export class Asteroide {
         void main() {
           float f = pow(1.0 - abs(dot(normalize(vN), normalize(vV))), 2.6);
           // Reposo: un filo tenue. Llegada: el filo sube y un barrido cruza.
-          float base = f * (0.10 + 0.75 * uNivel);
+          float base = f * (0.12 + 0.28 * uNivel);
           float y = vY;                                  // ~ -1..1 en el cuerpo
           float frente = (uNivel * 2.4 - 1.2);
           float barrido = exp(-pow((y - frente) * 3.2, 2.0)) * smoothstep(0.0, 0.08, uNivel) * (1.0 - uNivel * 0.6);
           // Un latido lento, para que nunca esté del todo quieto.
           base *= 0.85 + 0.15 * sin(uTiempo * 1.7);
-          gl_FragColor = vec4(uColor, (base + barrido * 0.7) * uOpacidad);
+          gl_FragColor = vec4(uColor, (base + barrido * 0.22) * uOpacidad);
         }`,
       transparent: true, depthWrite: false, blending: THREE.NormalBlending,
     });
@@ -232,7 +232,7 @@ export class Asteroide {
 
   /** Halo de recepción: se enciende cuando llega la señal. */
   _halo() {
-    const g = new THREE.PlaneGeometry(PSYCHE.diametro * 3.2, PSYCHE.diametro * 3.2);
+    const g = new THREE.PlaneGeometry(PSYCHE.diametro * 2.4, PSYCHE.diametro * 2.4);
     this.matHalo = new THREE.ShaderMaterial({
       uniforms: {
         uNivel: { value: 0 },
@@ -248,11 +248,12 @@ export class Asteroide {
         void main() {
           float d = length(vUv - 0.5) * 2.0;
           // Anillo que se expande al recibir la señal.
-          float anillo = exp(-pow((d - uNivel * 1.05) * 9.0, 2.0)) * (1.0 - uNivel);
-          float aura = exp(-d * d * 3.2) * 0.35 * sin(uNivel * 3.14159);
-          float a = (anillo + aura) * smoothstep(0.0, 0.06, uNivel);
+          // Una línea nítida, no un resplandor: banda de borde duro.
+          float r = uNivel * 1.05;
+          float anillo = (smoothstep(r - 0.022, r - 0.012, d) - smoothstep(r + 0.012, r + 0.022, d)) * (1.0 - uNivel);
+          float a = anillo * smoothstep(0.0, 0.06, uNivel);
           a *= smoothstep(1.0, 0.72, d);
-          gl_FragColor = vec4(uColor, a * 0.75 * uOpacidad);
+          gl_FragColor = vec4(uColor, a * 0.85 * uOpacidad);
         }`,
       transparent: true, depthWrite: false, blending: THREE.NormalBlending,
     });

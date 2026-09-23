@@ -14,52 +14,42 @@ paso del pulso. Sin brillos ni efectos de plantilla: una cartela.
 
 ---
 
-## Cómo se ancla
+## Cómo se lanza
 
-Un trigger físico emplaza la obra (en la interfaz se le llama *celestial body*,
-nunca cartela). Hay dos, y los dos van compilados en `targets/targets.mind`:
+Se escanea el QR, se toca **Enter the work** y la obra aparece delante. No hay
+segundo marcador: con la luz de una galería el seguimiento por imagen no es
+fiable, y así nadie se queda apuntando a nada. El único toque es obligatorio:
+los navegadores no dan cámara ni giroscopio sin un gesto del visitante.
 
-- **La tarjeta del QR en el suelo, junto a la obra.** Es el principal. La misma
-  tarjeta que abre la app sirve para anclarla: el visitante escanea, se abre la
-  app, apunta al mismo QR y aparece la obra. Imprimirla a **30 cm de ancho**,
-  papel mate, plastificado mate o bajo metacrilato mate. Colocarla con el
-  título "AR Grey Spaces" del lado del visitante. Probada en simulación de pie
-  mirando al suelo en ángulo, cerca y lejos: ancla en menos de tres segundos.
-- **La plancha de cobre con el mezzotint de 16 Psyche.** También ancla, en sala
-  clara y en sala oscura. Su único punto débil es el cobre pulido: si refleja
-  algo oscuro y queda más oscuro que la marca del láser, el contraste se
-  invierte y el seguimiento la pierde. Por eso va compilada dos veces, normal e
-  invertida, apuntando al mismo sitio (`A` y `A2` en `config.js`). Cuando la
-  plancha esté colgada hay que medir su posición respecto a los tubos y ponerla
-  en `MARCADORES`.
+Según el móvil, la app elige una de dos maneras:
 
-Después de anclarse, la pieza se queda quieta y es el visitante quien se
-mueve. Lo que sostiene la obra en su sitio depende de lo
-que sepa hacer el móvil, y en 2026 eso divide el mundo en dos:
+- **Modo libre, Android con Chrome** (y iPhone si se activa Variant Launch).
+  WebXR: el móvil busca el suelo con un rayo que sale de la cámara hacia
+  delante y abajo, pone la obra encima a `LANZAMIENTO.distancia` en la
+  dirección en que mira el visitante, con la línea de través, y la ancla a la
+  sala. Se puede caminar alrededor, agacharse, rodearla. Si en unos segundos
+  no ve el suelo, usa la altura que da el propio dispositivo o la estima.
+- **Modo giro, iPhone en Safari.** Cámara de fondo y giroscopio. La obra
+  aparece delante y se queda en su sitio al girar el móvil para mirar
+  alrededor. Lo que no sabe es cuánto camina el visitante (eso es SLAM y solo
+  lo da WebXR), así que al andar varios metros la obra le sigue. El botón
+  **Centre** la vuelve a poner delante.
 
-- **Modo libre, Android con Chrome.** WebXR, o sea SLAM de verdad. El
-  visitante centra la retícula en el trigger y toca la pantalla. La
-  obra se ancla a ese punto del espacio (`XRAnchor`) y ya puede caminar a lo
-  largo de los tubos, rodear la pieza, agacharse. Sigue ahí. Hay un botón de
-  recolocar por si el primer anclaje no convence.
-- **Modo imagen, iPhone y respaldo.** Safari no expone WebXR. El móvil
-  reconoce el trigger y sostiene la obra mientras lo tenga a la vista, y unos
-  ocho segundos después con el giroscopio. Si el visitante camina, se despega.
-- **iPhone en modo libre: Variant Launch.** Inyecta WebXR en Safari vía App
-  Clip. Plan gratuito hasta 3.000 aperturas al mes, sin tarjeta; Basic 99 $/mes
-  por proyecto si se pasa. La integración ya está hecha: pegar la clave del
-  proyecto en `MODO.variantKey` de `js/config.js` y autorizar el dominio en su
-  panel. El código es WebXR estándar, así que es el mismo modo libre.
+Para que la obra virtual caiga sobre la real, el QR va en el suelo, delante
+del centro de la pieza, a la distancia que diga `LANZAMIENTO.distancia` (2,2 m
+por defecto): quien lo escanea ya está donde tiene que estar, mirando a la
+obra.
 
-La app elige sola: si hay WebXR usa el modo libre, si no, imagen. Se puede
-forzar con `?modo=libre` o `?modo=imagen`.
+El seguimiento por imagen (MindAR, con la tarjeta del QR y la plancha de cobre
+compiladas en `targets/targets.mind`) sigue ahí con `?modo=imagen`, para
+pruebas y calibración, pero ya no se usa por defecto ni se descarga.
 
-Al anclarse, la obra no aparece de golpe: se dibuja de un extremo al otro de la
-línea con un filo brillante por delante, Psyche crece desde nada, y sale el
-primer pulso. Dura dos segundos y medio.
+Variant Launch: plan gratuito hasta 3.000 aperturas al mes. Con la clave en
+`MODO.variantKey`, el iPhone pasa al modo libre y también se puede rodear la
+obra.
 
-Todo el código es abierto y se aloja donde quieras. Sin plataforma de por
-medio salvo que se active Variant para iPhone.
+Al aparecer, la obra no sale de golpe: se dibuja de un extremo al otro de la
+línea, Psyche crece desde nada y sale el primer pulso.
 
 ---
 
@@ -107,7 +97,8 @@ index.html                  la aplicación
 js/config.js                TODO lo que hay que tocar para montarla
 js/main.js                  arranque, modo AR y modo previa
 js/anchoring.js             modo imagen: anclaje por trigger y retención
-js/xr.js                    modo libre: retícula, colocación y anclas WebXR
+js/xr.js                    modo libre: suelo, colocación y anclas WebXR, sin marcador
+js/giro.js                  modo giro: cámara de fondo y giroscopio, sin marcador
 js/rf-field.js              el campo de radiofrecuencia
 js/psyche.js                el asteroide
 js/piece.js                 calco en alambre de tubos y bloques, para calibrar
@@ -154,49 +145,34 @@ Abre `js/config.js` y rellena el bloque `PIEZA` con las medidas reales, en
 metros: separación entre los ejes de los tubos, radio del tubo, paso entre
 bloques, dimensiones del bloque y voladizo. De ahí sale toda la escala.
 
-### 2. Imprimir la tarjeta del QR
+### 2. Imprimir y colocar la tarjeta del QR
 
-`targets/imprimir/qr-cartela.png` (100 x 111 mm a 300 ppp) impresa a **30 cm de
-ancho**, mate. Es a la vez la entrada a la app y el trigger, así que tiene que
-sobrevivir a la sala: plastificado mate o bajo un metacrilato mate, nunca
-brillante, que los focos se reflejan y el seguimiento se cae. El papel puede
-ir pegado sobre un cartón pluma o una plancha fina para que no se levante.
+`targets/imprimir/qr-cartela.png`, mate. Ya no es un marcador, solo la puerta,
+así que basta con que se escanee bien: de 12 a 20 cm de ancho.
 
-En modo imagen un trigger se sigue bien hasta unas 6 u 8 veces su anchura; a
-30 cm eso son unos 2 m, más que de sobra para alguien de pie mirándolo. En
-modo libre solo hace falta verlo una vez.
+Va en el suelo, centrada delante de la pieza, a **2,2 m del eje de los tubos**
+(o a lo que pongas en `LANZAMIENTO.distancia`), con el título hacia el
+visitante. Quien la escanea queda de pie en el sitio justo y mirando a la
+obra; al tocar *Enter the work*, la obra virtual aparece sobre la real. Cinta
+de doble cara de moqueta debajo para que no se mueva.
 
-Anota el ancho real en metros: va en `anchoImpreso`. Si lo imprimes a otro
-tamaño, cambia ese número y nada más.
+### 3. Ajustar el lanzamiento
 
-### 3. Colocar los triggers
+En `LANZAMIENTO` de `js/config.js`:
 
-**La tarjeta** va en el suelo, delante de la obra, centrada en el recorrido de
-los tubos y a medio metro largo del eje de los tubos hacia el visitante, con el
-título *AR Grey Spaces* del lado del visitante. Fíjala con cinta de doble cara
-de moqueta para que nadie la mueva con el pie.
+- `distancia`: metros entre el visitante al tocar y el eje de los tubos.
+- `alturaMovil`: a qué altura se sujeta el móvil (1,40 m). Solo cuenta cuando
+  no se detecta el suelo, y siempre en el modo giro.
+- `fovCamara`: campo de visión de la cámara trasera (65°). Si en iPhone la
+  obra se ve algo grande o pequeña frente a la sala real, se afina aquí.
 
-**La plancha de cobre** va donde la obra la pida (pared de fondo o peana). Mide
-la posición de su centro respecto al centro de los tubos.
+### 4. Probar de pie, con dos móviles
 
-### 4. Decirle a la app dónde está cada trigger
+Un iPhone y un Android, escaneando el QR de verdad desde el suelo. En Android
+la obra tiene que quedar sobre el suelo y seguir ahí al rodearla. En iPhone,
+al girar el móvil la obra se queda quieta en la sala.
 
-En `MARCADORES` de `js/config.js`:
-
-- `anchoImpreso`: el ancho real, en metros, de la imagen completa (la tarjeta
-  entera, la plancha entera).
-- `posicion`: `[x, y, z]` del centro del trigger, en metros, medidos desde el
-  centro del recorrido de los tubos. `+X` a lo largo de los tubos, `+Y` arriba,
-  `+Z` hacia el espectador. La tarjeta en el suelo, 55 cm delante de los tubos:
-  `[0, -0.04, 0.55]` (el -0.04 es porque el eje del tubo va a 4 cm del suelo).
-  La plancha centrada en la pared de fondo, a 34 cm sobre los tubos y 12 cm
-  por detrás: `[0, 0.34, -0.12]`. `A2` lleva siempre lo mismo que `A`.
-- `rotacionDeg`: `[0,0,0]` plano en la pared mirando al espectador;
-  `[-90,0,0]` tumbado boca arriba en el suelo.
-
-Los mismos números valen para los dos modos.
-
-### 5. Calibrar con la pieza delante
+### 5. Calibrar con la pieza delante (solo modo imagen)
 
 Abre la app con `?modo=imagen&calibrar=1` al final de la URL. Se enciende la capa **guía de
 encaje**: un calco en alambre de los tubos y los bloques, más un rectángulo rojo

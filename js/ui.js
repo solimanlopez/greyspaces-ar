@@ -16,6 +16,11 @@ export function montarEnlaces() {
     { texto: ENLACES.artista.texto, url: ENLACES.artista.url },
     { texto: ENLACES.iridia.texto, url: ENLACES.iridia.url },
   ];
+  // Los botones fijos del visor.
+  const fijo = (id, url) => { const el = document.getElementById(id); if (el) el.href = url; };
+  fijo('cta-iridia', ENLACES.iridia.url);
+  fijo('cta-artista', ENLACES.artista.url);
+  fijo('cta-pdf', ENLACES.pdf);
   document.querySelectorAll('.enlaces').forEach((cont) => {
     cont.innerHTML = '';
     for (const it of items) {
@@ -38,6 +43,7 @@ export class HUD {
     this.estadoTexto = $('#estado-texto');
     this.pie = $('#pie');
     this.pieDato = $('#pie-dato');
+    this.pieLuz = $('#pie-luz');
     this.aviso = $('#aviso');
     this.panelCapas = $('#capas');
     this._construirCapas();
@@ -51,10 +57,10 @@ export class HUD {
 
   _construirCapas() {
     const nombres = {
+      radiacion: 'Rings',
+      estacionaria: 'Field tube',
       campoCercano: 'Near field',
-      estacionaria: 'Circular wave',
       cintas: 'Ribbon wave',
-      radiacion: 'Radiation',
       paquete: 'Pulse & milestones',
       psyche: '16 Psyche',
       guia: 'Alignment guide',
@@ -78,13 +84,16 @@ export class HUD {
       const T = TEXTOS.trigger;
       const mapa = {
         // modo imagen
-        buscando: ['buscando', this.modo === 'libre' ? 'Looking for a surface' : `Point at the ${T}`],
+        buscando: ['buscando', this.modo === 'libre' ? 'Finding the floor · hold the phone forward'
+                             : this.modo === 'giro' ? 'Starting' : `Point at the ${T}`],
         seguido: ['ok', 'Anchored'],
         reteniendo: ['reten', `${T[0].toUpperCase() + T.slice(1)} out of view`],
         perdido: ['buscando', `Look back at the ${T}`],
         // modo libre
         apuntando: ['apunta', `Centre the ${T} and tap`],
         anclada: ['ok', 'Anchored · walk around'],
+        // modo giro
+        giro: ['ok', 'Look around'],
       };
       const [clase, texto] = mapa[info.estado] || mapa.buscando;
       this.estado.className = 'estado ' + clase;
@@ -97,8 +106,8 @@ export class HUD {
       const h = HITOS[hitoActivo];
       const s = h.segundosLuz;
       const min = Math.floor(s / 60);
-      this.pieDato.textContent =
-        `${h.etiqueta} km · ${min} min ${String(Math.round(s % 60)).padStart(2, '0')} s at light speed`;
+      this.pieDato.textContent = `${h.etiqueta} km`;
+      this.pieLuz.textContent = `${min} min ${String(Math.round(s % 60)).padStart(2, '0')} s light-time`;
       this.pie.classList.add('visible');
     } else {
       this.pie.classList.remove('visible');

@@ -331,8 +331,8 @@ export class CampoRF {
   _ondaCircular() {
     const N = RENDIMIENTO.ondaAnillos;
     const SEG = 72;
-    const radioBase = PIEZA.separacionTubos * 1.5;   // ~12 cm de radio en los nodos
-    const amp = 0.16;                                // hasta ~30 cm en los vientres
+    const radioBase = PIEZA.separacionTubos * 1.1;   // ~9 cm de radio en los nodos
+    const amp = 0.11;                                // hasta ~22 cm en los vientres
 
     // Forma de la sección, compartida por la piel y los anillos: óvalo
     // (más ancho en Z, el eje que une los dos tubos) e irregular, con dos
@@ -429,7 +429,7 @@ export class CampoRF {
         void main() {
           float i = clamp(vI, 0.0, 2.0);
           vec3 c = mix(uColor, uColorAlto, smoothstep(1.0, 1.8, i));
-          float a = (0.06 + 0.55 * vFres) * clamp(i, 0.0, 1.0);
+          float a = (0.05 + 0.45 * vFres) * clamp(i, 0.0, 1.0);
           gl_FragColor = vec4(c, a * uOpacidad);
         }`,
       transparent: true, depthWrite: false, side: THREE.DoubleSide,
@@ -487,71 +487,108 @@ export class CampoRF {
   }
 
   /* ---------------------------------------------------------------------
-     3. RADIACIÓN
-     Anillos que crecen alrededor del eje de la línea y se apagan al
-     alejarse. Instanciados: una sola geometría de círculo repetida.
+     3. RADIACIÓN: LOS ANILLOS CERRADOS
+     Lo que la línea suelta a la sala, visto como lo ve una persona de pie:
+     anillos horizontales, cerrados, alrededor de toda la obra. Cada uno es
+     un óvalo que envuelve los cuatro metros de cobre, se hincha donde la
+     onda estacionaria tiene un vientre y se ciñe en los nodos, y su altura
+     sube un poco al alejarse (un cuenco muy abierto) para que tenga
+     profundidad. Nacen pegados a los tubos, se abren hacia la sala hasta
+     unos tres metros y se apagan. Son bandas con anchura, no líneas de un
+     píxel: se ven desde lejos, sobre pared clara y sobre pared oscura.
      --------------------------------------------------------------------- */
   _radiacion() {
     const ANILLOS = RENDIMIENTO.anillos;
-    const SEG = 64;
-    const radioMax = 1.7;    // hasta bien entrada la sala
+    const SEG = 160;
+    const dMin = 0.10, dMax = 3.0;   // distancia a la línea, en metros
+    const ancho = 0.045;             // anchura máxima de la banda, lejos
 
+    // Geometría base: una tira cerrada de SEG x 2 vértices, cada uno con su
+    // parámetro alrededor del óvalo (aS) y su lado (aLado = -1 dentro, +1 fuera).
     const base = new THREE.BufferGeometry();
-    const p = [];
+    const pos = new Float32Array(SEG * 2 * 3);   // no se usa: todo va en el shader
+    const aS = new Float32Array(SEG * 2), aLado = new Float32Array(SEG * 2);
     for (let i = 0; i < SEG; i++) {
-      const t0 = (i / SEG) * Math.PI * 2;
-      const t1 = ((i + 1) / SEG) * Math.PI * 2;
-      p.push(0, Math.sin(t0), Math.cos(t0));
-      p.push(0, Math.sin(t1), Math.cos(t1));
+      aS[i * 2] = i / SEG;     aLado[i * 2] = -1;
+      aS[i * 2 + 1] = i / SEG; aLado[i * 2 + 1] = 1;
     }
-    base.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
-
+    const idx = [];
+    for (let i = 0; i < SEG; i++) {
+      const a = i * 2, b = i * 2 + 1, c = ((i + 1) % SEG) * 2, d = c + 1;
+      idx.push(a, b, c, b, d, c);
+    }
     const g = new THREE.InstancedBufferGeometry();
-    g.setAttribute('position', base.attributes.position);
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('aS', new THREE.BufferAttribute(aS, 1));
+    g.setAttribute('aLado', new THREE.BufferAttribute(aLado, 1));
+    g.setIndex(idx);
     const off = new Float32Array(ANILLOS);
-    const xs = new Float32Array(ANILLOS);
-    for (let i = 0; i < ANILLOS; i++) {
-      off[i] = i / ANILLOS;
-      // Reparto a lo largo del recorrido, más denso en los vientres.
-      xs[i] = (i + 0.5) / ANILLOS;
-    }
+    for (let i = 0; i < ANILLOS; i++) off[i] = i / ANILLOS;
     g.setAttribute('aOffset', new THREE.InstancedBufferAttribute(off, 1));
-    g.setAttribute('aXn', new THREE.InstancedBufferAttribute(xs, 1));
     g.instanceCount = ANILLOS;
 
     const mat = new THREE.ShaderMaterial({
       uniforms: {
         ...this.uniformes,
         uColor: { value: new THREE.Color(PALETA.campo) },
-        uRadioMax: { value: radioMax },
+        uColorAlto: { value: new THREE.Color(PALETA.campoAlto) },
         uLargo: { value: this.L },
+        uDMin: { value: dMin }, uDMax: { value: dMax },
+        uAncho: { value: ancho },
       },
       vertexShader: /* glsl */`
-        attribute float aOffset;
-        attribute float aXn;
-        uniform float uRadioMax;
-        uniform float uLargo;
-        varying float vI;
+        attribute float aS; attribute float aLado; attribute float aOffset;
+        uniform float uLargo; uniform float uDMin; uniform float uDMax; uniform float uAncho;
+        varying float vI; varying float vLado;
         ${GLSL_ONDA}
+        // Punto del óvalo a distancia d de la línea, para el parámetro s (0..1).
+        // Es una elipse de semiejes (L/2 + d, d) deformada por la envolvente:
+        // en los vientres el anillo se hincha hacia fuera.
+        vec3 ovalo(float s, float d) {
+          float th = s * 6.2831853;
+          float x = cos(th) * (uLargo * 0.5 + d);
+          float z = sin(th) * d;
+          float xn = clamp(x / uLargo + 0.5, 0.0, 1.0);
+          float e = envolvente(xn);
+          // Se hincha un poco en los vientres (suave, sin dientes) y lleva la
+          // irregularidad lenta del contorno de un cuerpo, no la de un compás.
+          float hincha = 0.97 + 0.05 * e;
+          hincha *= 1.0 + 0.06 * sin(2.0 * th + uTiempo * 0.23) + 0.035 * sin(5.0 * th - uTiempo * 0.17);
+          z *= hincha;
+          x = cos(th) * (uLargo * 0.5 + d * hincha);
+          // Un cuenco muy abierto: sube 8 cm por metro, y respira apenas con la onda.
+          float y = 0.02 + d * 0.08 + 0.02 * e * fase(xn) * smoothstep(0.0, 0.4, d);
+          return vec3(x, y, z);
+        }
         void main() {
-          float ciclo = fract(uTiempo * 0.085 + aOffset);
-          // Crece rápido al principio y frena al alejarse, como un frente real.
-          float r = uRadioMax * (1.0 - pow(1.0 - ciclo, 1.8));
-          float e = envolvente(aXn) * extremos(aXn);
-          vec3 p = position * r;
-          p.x = (aXn - 0.5) * uLargo;
-          // Se apaga al alejarse y nace con fuerza en los vientres.
-          vI = e * pow(1.0 - ciclo, 1.6) * smoothstep(0.0, 0.08, ciclo);
+          float ciclo = fract(uTiempo * 0.055 + aOffset);
+          float d = uDMin + (uDMax - uDMin) * (1.0 - pow(1.0 - ciclo, 1.7));
+          vec3 p = ovalo(aS, d);
+          // Anchura de banda: desplazamiento hacia fuera del óvalo (en XZ).
+          vec3 q = ovalo(aS, d + 0.02);
+          vec3 n = normalize(vec3(q.x - p.x, 0.0, q.z - p.z));
+          float w = uAncho * (0.35 + 0.65 * smoothstep(0.0, 2.5, d));   // más ancha lejos
+          p += n * (aLado * w * 0.5);
+          // Se apaga al alejarse; nace pegado al cobre. Y la materialización.
+          float nacer = smoothstep(0.0, 0.5, uNacer);
+          vI = pow(1.0 - ciclo, 1.15) * smoothstep(0.0, 0.05, ciclo) * nacer;
+          vLado = aLado;
           gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
         }`,
       fragmentShader: /* glsl */`
         precision mediump float;
-        uniform vec3 uColor; uniform float uOpacidad; varying float vI;
-        void main(){ gl_FragColor = vec4(uColor, vI * 0.50 * uOpacidad); }`,
-      transparent: true, depthWrite: false, blending: THREE.NormalBlending,
+        uniform vec3 uColor; uniform vec3 uColorAlto; uniform float uOpacidad;
+        varying float vI; varying float vLado;
+        void main() {
+          // Borde ligeramente más claro hacia fuera, para que la banda tenga cuerpo.
+          vec3 c = mix(uColor, uColorAlto, 0.18 * smoothstep(0.2, 1.0, vLado));
+          gl_FragColor = vec4(c, vI * 0.85 * uOpacidad);
+        }`,
+      transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      blending: THREE.NormalBlending,
     });
 
-    this.radiacion = new THREE.LineSegments(g, mat);
+    this.radiacion = new THREE.Mesh(g, mat);
     this.radiacion.frustumCulled = false;
     this.grupo.add(this.radiacion);
   }
@@ -573,12 +610,12 @@ export class CampoRF {
         opacity: 0, blending: THREE.NormalBlending,
       });
       const m = new THREE.Mesh(geo, mat);
-      const ancho = 0.34;
+      const ancho = 0.52;
       m.scale.set(ancho, ancho * (tex.image.height / tex.image.width), 1);
       const xn = PIEZA.nBloques === 1 ? 0.5 : i / (PIEZA.nBloques - 1);
       m.position.set(
         (xn - 0.5) * this.L,
-        PIEZA.bloque.alto * 0.5 + 0.42,
+        PIEZA.bloque.alto * 0.5 + 0.55,
         0
       );
       m.userData.xn = xn;
@@ -590,7 +627,7 @@ export class CampoRF {
 
     // El pulso: un halo aditivo sobre el eje, con núcleo blanco.
     const halo = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.40, 0.40),
+      new THREE.PlaneGeometry(0.55, 0.55),
       new THREE.ShaderMaterial({
         uniforms: { uOpacidad: this.uniformes.uOpacidad,
                     uColor: { value: new THREE.Color(PALETA.campoAlto) },
@@ -759,8 +796,8 @@ function etiquetaTextura(hito) {
   const seg = hito.segundosLuz;
   const min = Math.floor(seg / 60);
   const rest = Math.round(seg % 60);
-  const tiempo = min > 0 ? `${min} min ${String(rest).padStart(2, '0')} s at light speed`
-                         : `${Math.round(seg)} s at light speed`;
+  const tiempo = min > 0 ? `${min} min ${String(rest).padStart(2, '0')} s light-time`
+                         : `${Math.round(seg)} s light-time`;
 
   x.fillStyle = 'rgba(191,198,204,0.55)';
   x.font = '300 34px Lato, "Helvetica Neue", Arial, sans-serif';

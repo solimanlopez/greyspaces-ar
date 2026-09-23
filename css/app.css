@@ -59,26 +59,21 @@ html, body {
 #cielo { display: block; width: 100%; height: 100%; min-height: 0; }
 
 .cabecera {
-  display: grid; gap: 3px;
-  padding-bottom: 12px; border-bottom: 1px solid var(--linea);
-  font-size: 11px; letter-spacing: .18em; text-transform: uppercase;
-  color: var(--gris-tenue);
+  display: grid; gap: 5px;
+  padding-bottom: 14px; border-bottom: 1px solid var(--linea);
+  font-size: 12px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--gris-tenue); line-height: 1.35;
 }
-.cabecera .kicker { color: #e6e9eb; }
+.cabecera .kicker { color: #fff; font-size: 15px; letter-spacing: .2em; }
 
 .marco { width: 100%; max-width: 440px; justify-self: center; animation: aparecer 1s .2s ease both; }
 
-/* Las barras del Tratado, sin letras. */
-.barras { display: grid; gap: 4px; margin: 14px 0 14px; width: 40%; }
-.barras i { display: block; height: 4px; width: var(--w); background: var(--gris); opacity: .28; }
-.barras i:nth-child(4) { background: var(--claiming); opacity: .85; }
-
 h1 {
-  margin: 0 0 2px; font-size: clamp(26px, 7.6vw, 36px); font-weight: 300;
+  margin: 16px 0 4px; font-size: clamp(30px, 8.6vw, 42px); font-weight: 300;
   letter-spacing: .2em; color: #fff; line-height: 1.1; white-space: nowrap;
 }
 #subtitulo {
-  margin: 0 0 12px; font-size: 11.5px; letter-spacing: .16em;
+  margin: 0 0 14px; font-size: 12.5px; letter-spacing: .16em;
   text-transform: uppercase; color: var(--gris-tenue);
 }
 
@@ -88,24 +83,24 @@ h1 {
   border-top: 1px solid var(--linea); border-bottom: 1px solid var(--linea);
   font-variant-numeric: tabular-nums;
 }
-.lectura-eti { font-size: 11px; letter-spacing: .18em; text-transform: uppercase; color: var(--gris-tenue); }
-.lectura-hito { font-size: 11px; letter-spacing: .18em; color: var(--campo); }
-.lectura-num { grid-column: 1 / -1; font-size: 24px; letter-spacing: .03em; color: #fff; }
+.lectura-eti { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--gris-tenue); }
+.lectura-hito { font-size: 12px; letter-spacing: .18em; color: var(--campo); }
+.lectura-num { grid-column: 1 / -1; font-size: 28px; letter-spacing: .03em; color: #fff; }
 .lectura-num strong { font-weight: 300; color: var(--campo); }
 
-.cuerpo { margin: 0 0 16px; font-size: 14px; line-height: 1.55; color: #cfd4d8; }
+.cuerpo { margin: 0 0 18px; font-size: 15px; line-height: 1.55; color: #cfd4d8; }
 
 #btn-entrar {
-  width: 100%; padding: 15px 18px;
-  background: transparent; color: #fff;
+  width: 100%; min-height: 58px; padding: 16px 18px;
+  background: var(--campo); color: #041a08;
   border: 1px solid var(--campo);
-  font: inherit; font-size: 13px; letter-spacing: .2em; text-transform: uppercase;
+  font: inherit; font-size: 15px; font-weight: 400; letter-spacing: .2em; text-transform: uppercase;
   cursor: pointer; transition: background .2s ease, color .2s ease;
 }
-#btn-entrar:hover:not(:disabled), #btn-entrar:active:not(:disabled) { background: var(--campo); color: #041a08; }
-#btn-entrar:disabled { opacity: .55; cursor: default; border-color: var(--linea); }
+#btn-entrar:active:not(:disabled) { background: #fff; border-color: #fff; }
+#btn-entrar:disabled { background: transparent; color: var(--gris-tenue); border-color: var(--linea); cursor: default; }
 
-.pista { margin: 10px 0 0; font-size: 12px; color: var(--gris-tenue); text-align: center; }
+.pista { margin: 12px 0 0; font-size: 13px; color: var(--gris-tenue); text-align: center; }
 
 #error { margin: 12px 0 0; font-size: 13px; line-height: 1.5; color: var(--claiming); display: none; }
 #error.visible { display: block; }
@@ -114,8 +109,8 @@ h1 {
 
 /* Móviles bajos (iPhone SE y similares): menos aire, el asteroide manda. */
 @media (max-height: 720px) {
-  .barras { display: none; }
-  .marco { margin-top: 12px; }
+  .marco { margin-top: 8px; }
+  h1 { margin-top: 8px; }
   #subtitulo { margin-bottom: 8px; }
   .lectura { padding: 6px 0; margin-bottom: 8px; }
   .lectura-num { font-size: 20px; }
@@ -128,112 +123,144 @@ h1 {
 /* ---------- Enlaces permanentes ---------- */
 .enlaces {
   display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 10px;
-  margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--linea);
-  font-size: 12px; letter-spacing: .03em;
+  margin-top: 18px; padding-top: 12px; border-top: 1px solid var(--linea);
+  font-size: 13px; letter-spacing: .03em;
 }
-.enlaces a { color: var(--gris-tenue); text-decoration: none; padding: 4px 0; }
+.enlaces a { color: var(--gris-tenue); text-decoration: none; padding: 6px 0; }
 .enlaces a:hover, .enlaces a:focus-visible { color: #fff; }
 .enlaces a.pdf { color: #e6e9eb; }
 
-/* En la vista AR: barra fina abajo, siempre visible, sin tapar la cámara. */
-.enlaces-ar {
-  position: fixed; z-index: 20; left: 0; right: 0;
-  bottom: calc(4px + var(--safe-b));
-  margin: 0; padding: 6px 14px; border-top: 0; justify-content: center; gap: 4px 18px; font-size: 11px;
+
+/* ---------- El visor ----------
+   La vista AR es un visor de cámara: cuatro esquinas finas, el estado arriba
+   a la izquierda, iridia.world arriba en el centro, y abajo, pegados al
+   borde, los tres botones: el artista a la izquierda, el PDF en el centro
+   (el principal, en el verde), las capas a la derecha. Todo grande: se usa
+   de pie, con el brazo estirado. */
+.visor { position: fixed; inset: 0; z-index: 15; pointer-events: none; }
+.visor i {
+  position: absolute; width: 22px; height: 22px;
+  border: 1px solid rgba(230, 233, 235, .55);
 }
-.enlaces-ar a { padding: 6px 2px; text-shadow: 0 1px 8px rgba(0, 0, 0, .9); }
-body.previa .enlaces-ar { display: none; }
+.visor i:nth-child(1) { top: calc(14px + var(--safe-t)); left: 14px; border-right: 0; border-bottom: 0; }
+.visor i:nth-child(2) { top: calc(14px + var(--safe-t)); right: 14px; border-left: 0; border-bottom: 0; }
+.visor i:nth-child(3) { bottom: calc(14px + var(--safe-b)); left: 14px; border-right: 0; border-top: 0; }
+.visor i:nth-child(4) { bottom: calc(14px + var(--safe-b)); right: 14px; border-left: 0; border-top: 0; }
+
+/* Botón del visor: rectángulo, borde fino, sin sombras ni esquinas. */
+.cta {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 48px; padding: 12px 18px;
+  background: rgba(8, 10, 12, .74);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(230, 233, 235, .38); color: #fff;
+  font: inherit; font-size: 13px; letter-spacing: .16em; text-transform: uppercase;
+  text-decoration: none; cursor: pointer; white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+}
+.cta:active { background: rgba(230, 233, 235, .92); color: #07090b; }
+.cta-principal { background: var(--campo); border-color: var(--campo); color: #041a08; font-weight: 400; }
+.cta-principal:active { background: #fff; border-color: #fff; }
+.cta-arriba {
+  position: fixed; z-index: 20; top: calc(22px + var(--safe-t)); left: 50%; transform: translateX(-50%);
+}
+
+.borde-abajo {
+  position: fixed; z-index: 20; left: 22px; right: 22px;
+  bottom: calc(22px + var(--safe-b));
+  display: grid; grid-template-columns: auto 1fr auto; gap: 8px; align-items: stretch;
+}
+/* El PDF, el principal, ocupa todo el ancho justo encima del borde; en el
+   borde mismo, el artista a la izquierda, "Centre" en medio (vuelve a poner
+   la obra delante) y las capas a la derecha. */
+.borde-abajo .cta-principal { grid-column: 1 / -1; grid-row: 1; }
+#cta-artista { grid-row: 2; grid-column: 1; }
+#btn-recolocar { grid-row: 2; grid-column: 2; justify-self: center; }
+#btn-capas { grid-row: 2; grid-column: 3; }
+@media (max-width: 400px) {
+  .cta { font-size: 12px; letter-spacing: .12em; padding: 12px 14px; }
+}
 
 /* ---------- Estado del anclaje ---------- */
 .estado {
   position: fixed; z-index: 20;
-  top: calc(14px + var(--safe-t)); left: 14px;
-  display: inline-flex; align-items: center; gap: 9px;
-  padding: 9px 14px;
-  background: rgba(8, 10, 12, .62);
-  backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
-  border: 1px solid var(--linea);
-  font-size: 12px; letter-spacing: .06em; color: #dfe3e6;
+  top: calc(22px + var(--safe-t)); left: 22px;
+  display: inline-flex; align-items: center; gap: 10px;
+  min-height: 48px; padding: 12px 16px;
+  background: rgba(8, 10, 12, .74);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(230, 233, 235, .38);
+  font-size: 13px; letter-spacing: .08em; color: #fff;
   transition: opacity .4s ease;
 }
 .estado .punto {
-  width: 7px; height: 7px; border-radius: 50%;
+  width: 9px; height: 9px; border-radius: 50%;
   background: var(--gris-tenue);
-  box-shadow: 0 0 0 0 currentColor;
 }
 .estado.buscando .punto { background: var(--gris-tenue); animation: latir 1.6s infinite; }
 .estado.ok .punto { background: var(--campo); }
 .estado.reten .punto { background: var(--cobre); animation: latir 1s infinite; }
+.estado.apunta .punto { background: var(--campo); animation: latir 1.1s infinite; }
 @keyframes latir { 0%,100% { opacity: 1 } 50% { opacity: .25 } }
 
-/* ---------- Recolocar (solo modo libre) ---------- */
-#btn-recolocar {
-  position: fixed; z-index: 20; display: none;
-  left: 50%; transform: translateX(-50%);
-  bottom: calc(92px + var(--safe-b));
-  padding: 10px 16px;
-  background: rgba(8, 10, 12, .62);
-  backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
-  border: 1px solid var(--linea); color: var(--gris-tenue);
-  font: inherit; font-size: 12px; letter-spacing: .12em; text-transform: uppercase;
-  cursor: pointer;
+/* En pantallas estrechas el estado y iridia.world se pisan: iridia.world baja
+   a la derecha del estado, alineado al borde. */
+@media (max-width: 430px) {
+  .cta-arriba { left: auto; right: 22px; transform: none; }
 }
-body.libre #btn-recolocar { display: block; }
-.estado.apunta .punto { background: var(--campo); animation: latir 1.1s infinite; }
+
+/* ---------- Centre (modos libre y giro) ---------- */
+#btn-recolocar { visibility: hidden; }
+body.libre #btn-recolocar, body.giro #btn-recolocar { visibility: visible; }
 
 /* ---------- Capas ---------- */
-#btn-capas {
-  position: fixed; z-index: 20;
-  top: calc(14px + var(--safe-t)); right: 14px;
-  padding: 9px 14px;
-  background: rgba(8, 10, 12, .62);
-  backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
-  border: 1px solid var(--linea); color: #dfe3e6;
-  font: inherit; font-size: 12px; letter-spacing: .1em; cursor: pointer;
-}
 #capas {
-  position: fixed; z-index: 20;
-  top: calc(56px + var(--safe-t)); right: 14px;
+  position: fixed; z-index: 21;
+  right: 22px; bottom: calc(136px + var(--safe-b));
   display: grid; gap: 1px;
-  opacity: 0; visibility: hidden; transform: translateY(-6px);
+  opacity: 0; visibility: hidden; transform: translateY(6px);
   transition: opacity .25s ease, transform .25s ease, visibility .25s;
 }
 #capas.abierto { opacity: 1; visibility: visible; transform: none; }
 .capa {
-  padding: 9px 14px; min-width: 168px; text-align: left;
-  background: rgba(8, 10, 12, .72);
-  backdrop-filter: blur(9px); -webkit-backdrop-filter: blur(9px);
-  border: 1px solid var(--linea); border-bottom: 0;
-  color: var(--gris-tenue); font: inherit; font-size: 12px; letter-spacing: .05em;
+  min-height: 44px; padding: 10px 16px; min-width: 200px; text-align: left;
+  background: rgba(8, 10, 12, .84);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(230, 233, 235, .38); border-bottom: 0;
+  color: var(--gris-tenue); font: inherit; font-size: 13px; letter-spacing: .06em;
   cursor: pointer;
 }
-#capas .capa:last-child { border-bottom: 1px solid var(--linea); }
-.capa.on { color: #fff; box-shadow: inset 2px 0 0 var(--campo); }
+#capas .capa:last-child { border-bottom: 1px solid rgba(230, 233, 235, .38); }
+.capa.on { color: #fff; box-shadow: inset 3px 0 0 var(--campo); }
 
-/* ---------- Pie ---------- */
+/* ---------- Pie: el dato del hito ---------- */
 #pie {
   position: fixed; z-index: 20;
-  left: 0; right: 0; bottom: calc(40px + var(--safe-b));
+  left: 50%; transform: translateX(-50%); bottom: calc(142px + var(--safe-b));
   display: grid; justify-items: center; gap: 3px;
-  padding: 0 16px; pointer-events: none;
+  padding: 10px 18px; pointer-events: none;
+  background: rgba(8, 10, 12, .74);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(230, 233, 235, .38);
   opacity: 0; transition: opacity .35s ease;
 }
 #pie.visible { opacity: 1; }
-#pie-frec { font-size: 11px; letter-spacing: .18em; color: var(--gris-tenue); text-transform: uppercase; }
+#pie-frec { font-size: 12px; letter-spacing: .18em; color: #dfe3e6; text-transform: uppercase; text-shadow: 0 1px 10px rgba(0, 0, 0, .9); }
 #pie-dato {
-  font-weight: 300; font-size: 17px; letter-spacing: .04em; color: #fff;
-  text-shadow: 0 1px 14px rgba(0, 0, 0, .75);
+  font-weight: 300; font-size: 24px; letter-spacing: .04em; color: #fff;
+  text-shadow: 0 1px 14px rgba(0, 0, 0, .9); white-space: nowrap;
 }
+#pie-luz { font-size: 13px; letter-spacing: .08em; color: var(--campo); text-shadow: 0 1px 10px rgba(0, 0, 0, .9); }
 
 /* ---------- Aviso ---------- */
 #aviso {
   position: fixed; z-index: 30;
-  left: 50%; bottom: calc(104px + var(--safe-b));
+  left: 50%; bottom: calc(210px + var(--safe-b));
   transform: translate(-50%, 8px);
-  padding: 11px 18px; max-width: 88vw;
+  padding: 13px 20px; max-width: 88vw;
   background: rgba(8, 10, 12, .86);
   border: 1px solid var(--linea);
-  font-size: 13px; color: #e7eaec; text-align: center;
+  font-size: 15px; color: #e7eaec; text-align: center;
   opacity: 0; visibility: hidden;
   transition: opacity .3s ease, transform .3s ease, visibility .3s;
 }
@@ -280,7 +307,8 @@ body.libre #btn-recolocar { display: block; }
 }
 
 /* En previa no hace falta el indicador de anclaje. */
-body.previa .estado { display: none; }
+body.previa .estado, body.previa .visor, body.previa .cta-arriba, body.previa #cta-artista, body.previa #cta-pdf { display: none; }
+
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: .01ms !important; transition-duration: .01ms !important; }

@@ -1,52 +1,37 @@
 /* ==========================================================================
-   MODO LIBRE · WebXR
-   Una cartela, un toque, y la obra se queda clavada en la sala.
+   MODO LIBRE · WebXR, sin marcador
+   Android con Chrome, y iPhone si se activa Variant Launch.
 
-   Aquí no se reconoce la imagen: el visitante apunta la retícula al centro
-   de la cartela y toca la pantalla. El punto de impacto sobre la pared o el
-   suelo, con su normal, define dónde está la cartela; de ahí, con la misma
-   configuración que usa el modo imagen, sale dónde está la obra. Luego la
-   obra se ancla al espacio (XRAnchor) y el SLAM del móvil la mantiene fija
-   mientras el visitante camina, la rodea o mira a otro lado.
+   Se toca "Enter the work" y la obra aparece sola: el móvil busca el suelo
+   con un rayo que sale de la cámara hacia delante y un poco hacia abajo, y
+   en cuanto lo encuentra coloca la obra sobre él, a LANZAMIENTO.distancia
+   en la dirección en que mira el visitante, con la línea de cobre de
+   través. Luego la ancla al espacio (XRAnchor) y el SLAM del móvil la
+   mantiene fija mientras el visitante camina, la rodea o se agacha.
 
-   Funciona en Android con Chrome. Safari en iPhone no expone WebXR en 2026,
-   así que ahí la app cae al modo imagen.
+   Nada que reconocer en la imagen: la luz de la galería no le afecta más
+   allá de que el móvil vea algo de textura en el suelo, y si en unos
+   segundos no lo encuentra, usa la altura del suelo que da el propio
+   dispositivo (local-floor) o la estima.
    ========================================================================== */
 
 import * as THREE from 'three';
-import { MARCADORES, PALETA } from './config.js';
+import { LANZAMIENTO } from './config.js';
 
 const _m = new THREE.Matrix4();
 const _pos = new THREE.Vector3();
 const _quat = new THREE.Quaternion();
 const _scl = new THREE.Vector3();
 const _n = new THREE.Vector3();
+const _f = new THREE.Vector3();
 const _x = new THREE.Vector3();
-const _y = new THREE.Vector3();
 const _z = new THREE.Vector3();
-const _cam = new THREE.Vector3();
 const _ARRIBA = new THREE.Vector3(0, 1, 0);
-const _GIRO_RETICULA = new THREE.Matrix4().makeRotationX(-Math.PI / 2);
 
 export async function soportado() {
   if (!('xr' in navigator) || !navigator.xr) return false;
   try { return await navigator.xr.isSessionSupported('immersive-ar'); }
   catch { return false; }
-}
-
-/** Pose de la cartela dentro del sistema de la pieza, desde config. */
-function poseMarcadorEnPieza(cfg) {
-  const rot = new THREE.Euler(
-    THREE.MathUtils.degToRad(cfg.rotacionDeg[0]),
-    THREE.MathUtils.degToRad(cfg.rotacionDeg[1]),
-    THREE.MathUtils.degToRad(cfg.rotacionDeg[2]),
-    'XYZ'
-  );
-  return new THREE.Matrix4().compose(
-    new THREE.Vector3(...cfg.posicion),
-    new THREE.Quaternion().setFromEuler(rot),
-    new THREE.Vector3(1, 1, 1)
-  );
 }
 
 export class SesionLibre {
@@ -55,15 +40,13 @@ export class SesionLibre {
    * @param {THREE.WebGLRenderer} o.renderer
    * @param {THREE.Scene} o.scene
    * @param {THREE.Object3D} o.raiz       raíz de la obra, en metros
-   * @param {THREE.Object3D} o.fantasma   guía que se enseña antes de colocar
    * @param {HTMLElement} o.overlay       raíz del DOM que se ve sobre la AR
-   * @param {Function} o.alColocar        callback cuando la obra queda anclada
+   * @param {Function} o.alColocar        callback cuando la obra aparece
    */
-  constructor({ renderer, scene, raiz, fantasma, overlay, alColocar }) {
+  constructor({ renderer, scene, raiz, overlay, alColocar }) {
     this.renderer = renderer;
     this.scene = scene;
     this.raiz = raiz;
-    this.fantasma = fantasma;
     this.overlay = overlay;
     this.alColocar = alColocar;
 
@@ -71,134 +54,87 @@ export class SesionLibre {
     this.raiz.visible = false;
 
     this.sesion = null;
-    this.refSpace = null;
     this.fuenteHit = null;
     this.ancla = null;
     this.colocada = false;
-    this.poseFija = new THREE.Matrix4();   // por si no hay anclas
-    this.ultimoHit = null;
-    this.matrizCandidata = new THREE.Matrix4();
-    this.hayCandidata = false;
-
-    this.inversaMarcador = poseMarcadorEnPieza(MARCADORES[0]).invert();
-    this._reticula();
-  }
-
-  /* Retícula: un aro fino en el verde de la obra con un punto en el centro,
-     tumbado sobre la superficie que apunta la cámara. */
-  _reticula() {
-    const g = new THREE.Group();
-    const aro = new THREE.Mesh(
-      new THREE.RingGeometry(0.030, 0.036, 48),
-      new THREE.MeshBasicMaterial({ color: PALETA.campo, transparent: true, opacity: 0.9,
-                                    side: THREE.DoubleSide, depthTest: false })
-    );
-    const punto = new THREE.Mesh(
-      new THREE.CircleGeometry(0.004, 16),
-      new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95,
-                                    depthTest: false })
-    );
-    // Cuatro marcas de puntería, como en un visor.
-    const marcas = new THREE.Group();
-    for (let i = 0; i < 4; i++) {
-      const m = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.014, 0.0016),
-        new THREE.MeshBasicMaterial({ color: PALETA.campo, transparent: true, opacity: 0.7,
-                                      side: THREE.DoubleSide, depthTest: false })
-      );
-      const a = (i / 4) * Math.PI * 2;
-      m.position.set(Math.cos(a) * 0.052, Math.sin(a) * 0.052, 0);
-      m.rotation.z = a;
-      marcas.add(m);
-    }
-    g.add(aro, punto, marcas);
-    g.matrixAutoUpdate = false;
-    g.visible = false;
-    g.renderOrder = 20;
-    this.reticula = g;
-    this.scene.add(g);
+    this.sueloY = null;          // altura del suelo en el espacio de referencia
+    this.tipoRef = 'local';
   }
 
   async iniciar() {
-    const opciones = {
-      requiredFeatures: ['hit-test'],
-      optionalFeatures: ['local-floor', 'anchors', 'dom-overlay'],
+    this.sesion = await navigator.xr.requestSession('immersive-ar', {
+      optionalFeatures: ['hit-test', 'local-floor', 'anchors', 'dom-overlay'],
       domOverlay: { root: this.overlay },
-    };
-    this.sesion = await navigator.xr.requestSession('immersive-ar', opciones);
+    });
 
-    // local-floor si el dispositivo lo da; si no, local. Da igual para la
-    // colocación, que va relativa al punto de impacto, pero three necesita
-    // un tipo que exista.
-    let tipoRef = 'local-floor';
+    this.tipoRef = 'local-floor';
     try { await this.sesion.requestReferenceSpace('local-floor'); }
-    catch { tipoRef = 'local'; }
+    catch { this.tipoRef = 'local'; }
     this.renderer.xr.enabled = true;
-    this.renderer.xr.setReferenceSpaceType(tipoRef);
+    this.renderer.xr.setReferenceSpaceType(this.tipoRef);
     await this.renderer.xr.setSession(this.sesion);
 
-    // Referencia del visor para lanzar el rayo de puntería desde la cámara.
-    const viewer = await this.sesion.requestReferenceSpace('viewer');
-    this.fuenteHit = await this.sesion.requestHitTestSource({ space: viewer });
+    // Rayo de búsqueda del suelo: desde la cámara, hacia delante y unos 25°
+    // hacia abajo. Con el móvil a la altura del pecho cae a unos tres metros.
+    try {
+      const viewer = await this.sesion.requestReferenceSpace('viewer');
+      const opciones = { space: viewer };
+      if (typeof XRRay === 'function') {
+        opciones.offsetRay = new XRRay({ x: 0, y: 0, z: 0, w: 1 }, { x: 0, y: -0.47, z: -1, w: 0 });
+      }
+      this.fuenteHit = await this.sesion.requestHitTestSource(opciones);
+    } catch { this.fuenteHit = null; }
 
-    this.sesion.addEventListener('select', () => this._colocar());
+    // Los toques en los botones del visor no cuentan como toques en la AR.
+    this.overlay.addEventListener('beforexrselect', (e) => {
+      if (e.target.closest && e.target.closest('a, button, #capas, #calibrar')) e.preventDefault();
+    });
+
     this.sesion.addEventListener('end', () => { this.sesion = null; this.alTerminar?.(); });
+    this.t0 = performance.now();
     return this.sesion;
   }
 
   terminar() { this.sesion?.end(); }
 
-  /** Vuelve a pedir un punto: la obra desaparece hasta el siguiente toque. */
+  /** La vuelve a poner delante, en la dirección en que se mira ahora. */
   recolocar() {
     this.colocada = false;
-    if (this.ancla) { try { this.ancla.delete(); } catch {} this.ancla = null; }
     this.raiz.visible = false;
+    if (this.ancla) { try { this.ancla.delete(); } catch {} this.ancla = null; }
   }
 
-  /* Del impacto sobre la superficie a la matriz de la obra. El eje Y del
-     impacto es la normal de la superficie. Con esa normal y la vertical del
-     mundo se monta el sistema de la cartela, y de ahí sale el de la pieza. */
-  _matrizDesdeHit(matHit, camaraPos, destino) {
-    matHit.decompose(_pos, _quat, _scl);
-    _n.set(0, 1, 0).applyQuaternion(_quat).normalize();
+  _colocar(frame, ref, poseVisor) {
+    const t = poseVisor.transform;
+    _pos.set(t.position.x, t.position.y, t.position.z);
+    _quat.set(t.orientation.x, t.orientation.y, t.orientation.z, t.orientation.w);
+    _f.set(0, 0, -1).applyQuaternion(_quat);
+    _f.y = 0;
+    if (_f.lengthSq() < 1e-4) _f.set(0, 0, -1);
+    _f.normalize();
 
-    if (Math.abs(_n.dot(_ARRIBA)) < 0.6) {
-      // Pared: la cartela mira hacia fuera, su arriba es el arriba del mundo.
-      _z.copy(_n);
-      _x.crossVectors(_ARRIBA, _z).normalize();
-      _y.crossVectors(_z, _x).normalize();
-    } else {
-      // Suelo o peana: la cartela mira hacia arriba y su cabecera queda
-      // lejos del visitante, como se lee de pie delante de ella.
-      _z.copy(_ARRIBA);
-      _y.copy(camaraPos).sub(_pos); _y.y = 0;
-      if (_y.lengthSq() < 1e-6) _y.set(0, 0, 1);
-      _y.normalize().negate();
-      _x.crossVectors(_y, _z).normalize();
-    }
-    destino.makeBasis(_x, _y, _z);
-    destino.setPosition(_pos);
-    destino.multiply(this.inversaMarcador);
-    return destino;
-  }
+    const d = LANZAMIENTO.distancia;
+    _pos.x += _f.x * d;
+    _pos.z += _f.z * d;
+    _pos.y = this.sueloY + LANZAMIENTO.alturaEje;
 
-  _colocar() {
-    if (!this.hayCandidata) return;
-    this.colocada = true;
-    this.poseFija.copy(this.matrizCandidata);
-    this.raiz.matrix.copy(this.poseFija);
+    // La pieza mira al visitante: su +Z es la dirección hacia él.
+    _z.copy(_f).negate();
+    _x.crossVectors(_ARRIBA, _z).normalize();
+    _m.makeBasis(_x, _ARRIBA, _z).setPosition(_pos);
+    this.raiz.matrix.copy(_m);
     this.raiz.matrixWorldNeedsUpdate = true;
     this.raiz.visible = true;
-    this.reticula.visible = false;
-    this.fantasma.visible = false;
+    this.colocada = true;
 
-    // Ancla del espacio: el SLAM la corrige sola si el mapa se ajusta.
-    if (this.ultimoHit && typeof this.ultimoHit.createAnchor === 'function') {
-      this.ultimoHit.createAnchor().then((a) => { this.ancla = a; }).catch(() => {});
-      // La obra no está exactamente en el punto de impacto: guardamos el
-      // desplazamiento entre el ancla (el impacto) y la obra.
-      this.offsetAncla = new THREE.Matrix4()
-        .copy(this.matrizHitCandidata).invert().multiply(this.matrizCandidata);
+    // Ancla del espacio: el SLAM la corrige si el mapa se reajusta.
+    if (typeof frame.createAnchor === 'function' && typeof XRRigidTransform === 'function') {
+      _m.decompose(_pos, _quat, _scl);
+      const pose = new XRRigidTransform(
+        { x: _pos.x, y: _pos.y, z: _pos.z, w: 1 },
+        { x: _quat.x, y: _quat.y, z: _quat.z, w: _quat.w }
+      );
+      frame.createAnchor(pose, ref).then((a) => { this.ancla = a; }).catch(() => {});
     }
     this.alColocar?.();
   }
@@ -207,50 +143,51 @@ export class SesionLibre {
    * Una vez por fotograma con el XRFrame que da three.
    * @returns {{estado:string}}
    */
-  actualizar(frame, camara) {
+  actualizar(frame) {
     if (!frame || !this.sesion) return { estado: 'buscando' };
     const ref = this.renderer.xr.getReferenceSpace();
     if (!ref) return { estado: 'buscando' };
 
     if (this.colocada) {
-      // Con ancla, seguimos el ancla; sin ella, la pose fija en local-floor.
       if (this.ancla && frame.trackedAnchors?.has(this.ancla)) {
         const p = frame.getPose(this.ancla.anchorSpace, ref);
         if (p) {
-          _m.fromArray(p.transform.matrix);
-          this.raiz.matrix.multiplyMatrices(_m, this.offsetAncla);
+          this.raiz.matrix.fromArray(p.transform.matrix);
           this.raiz.matrixWorldNeedsUpdate = true;
         }
       }
       return { estado: 'anclada' };
     }
 
-    // Apuntando: retícula y fantasma de la obra en el punto candidato.
-    const hits = frame.getHitTestResults(this.fuenteHit);
-    if (hits.length > 0) {
-      const hit = hits[0];
-      const pose = hit.getPose(ref);
-      if (pose) {
-        _m.fromArray(pose.transform.matrix);
-        this.matrizHitCandidata = this.matrizHitCandidata || new THREE.Matrix4();
-        this.matrizHitCandidata.copy(_m);
-        this.reticula.matrix.multiplyMatrices(_m, _GIRO_RETICULA);
-        this.reticula.matrixWorldNeedsUpdate = true;
-        this.reticula.visible = true;
+    const visor = frame.getViewerPose(ref);
+    if (!visor) return { estado: 'buscando' };
 
-        camara.getWorldPosition(_cam);
-        this._matrizDesdeHit(_m, _cam, this.matrizCandidata);
-        this.fantasma.matrix.copy(this.matrizCandidata);
-        this.fantasma.matrixWorldNeedsUpdate = true;
-        this.fantasma.visible = true;
-        this.hayCandidata = true;
-        this.ultimoHit = hit;
-        return { estado: 'apuntando' };
+    // ¿Suelo? Un impacto con la normal hacia arriba y por debajo del móvil.
+    if (this.fuenteHit) {
+      const hits = frame.getHitTestResults(this.fuenteHit);
+      for (const h of hits) {
+        const p = h.getPose(ref);
+        if (!p) continue;
+        _m.fromArray(p.transform.matrix);
+        _m.decompose(_pos, _quat, _scl);
+        _n.set(0, 1, 0).applyQuaternion(_quat);
+        if (_n.y > 0.85 && _pos.y < visor.transform.position.y - 0.5) {
+          this.sueloY = this.sueloY === null ? _pos.y : Math.min(this.sueloY, _pos.y);
+          break;
+        }
       }
     }
-    this.reticula.visible = false;
-    this.fantasma.visible = false;
-    this.hayCandidata = false;
+    // Si no aparece, lo que diga el dispositivo, o una estimación.
+    const espera = performance.now() - this.t0;
+    if (this.sueloY === null && this.tipoRef === 'local-floor' && espera > 2500) this.sueloY = 0;
+    if (this.sueloY === null && espera > 5000) {
+      this.sueloY = visor.transform.position.y - LANZAMIENTO.alturaMovil;
+    }
+
+    if (this.sueloY !== null) {
+      this._colocar(frame, ref, visor);
+      return { estado: 'anclada' };
+    }
     return { estado: 'buscando' };
   }
 }

@@ -143,13 +143,12 @@ export const MARCADORES = [
    ASTEROIDE
    -------------------------------------------------------------------------- */
 export const PSYCHE = {
-  // Dónde flota, en coordenadas de pieza: encima de la obra, a 1,5 m sobre
-  // los tubos (altura de la vista de una persona de pie) y un poco hacia el
-  // visitante. Así, apuntando de frente a la obra, Psyche queda arriba, en
-  // el encuadre, sin tener que buscarla.
-  posicion: [0.0, 1.5, 0.35],
-  // Diámetro aparente de la pieza AR, en metros.
-  diametro: 0.70,
+  // Dónde flota, en coordenadas de pieza: encima de la obra, a 1,9 m sobre
+  // los tubos y un poco por detrás de ellos. Mirando de frente a la obra,
+  // Psyche queda arriba en el encuadre, algo por encima de la vista.
+  posicion: [0.0, 1.9, -0.3],
+  // Diámetro aparente de la pieza AR, en metros. Se mira desde 2 o 3 m.
+  diametro: 0.80,
   // Proporciones del elipsoide triaxial real de 16 Psyche (278 x 238 x 171 km).
   ejes: [1.0, 0.856, 0.615],
   // Periodo de rotación en segundos. El real es de 4,196 h; aquí se comprime
@@ -205,19 +204,48 @@ export const ANCLAJE = {
 };
 
 /* --------------------------------------------------------------------------
-   MODO DE ANCLAJE
-   'auto'   usa WebXR si el móvil lo tiene (Android con Chrome) y si no, imagen
-   'libre'  fuerza WebXR
-   'imagen' fuerza el seguimiento por imagen
-   Se puede sobreescribir con ?modo=libre o ?modo=imagen en la URL.
+   LANZAMIENTO
+   Se escanea el QR, se toca "Enter the work", y la obra aparece delante del
+   visitante. No hay segundo marcador: con la luz de una galería el
+   seguimiento por imagen no es fiable, y así nadie se queda apuntando a
+   nada. Dos maneras, según el móvil:
+
+     'libre'  WebXR (Android con Chrome; iPhone con Variant Launch): el móvil
+              encuentra el suelo, pone la obra sobre él y la ancla a la sala.
+              Se puede caminar alrededor.
+     'giro'   el resto (iPhone en Safari): cámara de fondo y giroscopio. La
+              obra aparece delante y se queda en su sitio al mirar alrededor;
+              al caminar no se desplaza, y "Re-centre" la vuelve a poner
+              delante.
+
+   'imagen' (el seguimiento por imagen con MindAR) sigue disponible con
+   ?modo=imagen para pruebas y calibración, pero ya no se usa por defecto.
    -------------------------------------------------------------------------- */
+export const LANZAMIENTO = {
+  // Distancia, en metros, entre el visitante al tocar "Enter the work" y el
+  // eje de los tubos. Si el QR está en el suelo a 2 m de la obra y la gente
+  // lo escanea de pie junto a él, 2.2 deja la obra virtual sobre la real.
+  distancia: 2.2,
+  // Altura a la que se sujeta el móvil, en metros. Solo se usa cuando no hay
+  // suelo detectado (modo giro siempre; modo libre si falla la detección).
+  alturaMovil: 1.40,
+  // Altura del eje de los tubos sobre el suelo: media altura del bloque.
+  get alturaEje() { return PIEZA.bloque.alto / 2; },
+  // Campo de visión de la cámara trasera en su lado largo, en grados. Sirve
+  // para que la obra virtual tenga el tamaño correcto sobre el vídeo en modo
+  // giro. 65 va bien en iPhone y en la mayoría de Android.
+  fovCamara: 65,
+};
+
 export const MODO = {
+  // 'auto' elige 'libre' si hay WebXR y 'giro' si no. Se puede forzar con
+  // ?modo=libre | ?modo=giro | ?modo=imagen.
   preferido: 'auto',
-  // Duración de la materialización de la obra al anclarse, en segundos.
+  // Duración de la materialización de la obra al aparecer, en segundos.
   nacimientoSegundos: 2.6,
   // Variant Launch: WebXR en iPhone vía App Clip. Con la clave del proyecto
-  // aquí, la app carga su SDK y el iPhone entra en modo libre igual que
-  // Android. Vacío = no se carga nada y el iPhone usa el modo imagen.
+  // aquí, el iPhone entra en modo libre igual que Android (con suelo y
+  // caminar alrededor). Vacío = el iPhone usa el modo giro.
   // Plan gratuito hasta 3.000 aperturas al mes en launch.variant3d.com.
   variantKey: '',
 };
@@ -248,9 +276,9 @@ export const CALIDAD = (nucleos >= 8 && memoria >= 6) ? 'alta'
                      : (nucleos >= 6 ? 'media' : 'baja');
 
 export const RENDIMIENTO = {
-  alta:  { planos: 48, arcos: 7, segmentos: 22, anillos: 48, ondaAnillos: 120, estela: 160, enlace: 360 },
-  media: { planos: 36, arcos: 6, segmentos: 20, anillos: 36, ondaAnillos: 90,  estela: 110, enlace: 240 },
-  baja:  { planos: 24, arcos: 5, segmentos: 16, anillos: 24, ondaAnillos: 64,  estela: 70,  enlace: 150 },
+  alta:  { planos: 48, arcos: 7, segmentos: 22, anillos: 14, ondaAnillos: 120, estela: 160, enlace: 360 },
+  media: { planos: 36, arcos: 6, segmentos: 20, anillos: 11, ondaAnillos: 90,  estela: 110, enlace: 240 },
+  baja:  { planos: 24, arcos: 5, segmentos: 16, anillos: 8, ondaAnillos: 64,  estela: 70,  enlace: 150 },
 }[CALIDAD];
 
 /* --------------------------------------------------------------------------

@@ -2,16 +2,18 @@
    GREY SPACES · AR — arranque
    IRIDIA / SLStudio
 
-   Modos de anclaje:
-     libre      WebXR (Android con Chrome): una cartela, un toque, y la obra se
-                queda fija en la sala mientras el visitante la recorre
-     imagen     seguimiento por imagen (iPhone y respaldo): la obra se sostiene
-                mientras la cartela esté a la vista o unos segundos después
+   Se escanea el QR, se toca "Enter the work" y la obra aparece. Sin segundo
+   marcador. Dos maneras según el móvil (ver LANZAMIENTO en config.js):
+     libre      WebXR (Android con Chrome; iPhone con Variant): suelo, ancla,
+                se puede caminar alrededor
+     giro       cámara + giroscopio (iPhone en Safari): la obra delante, se
+                mira alrededor; "Re-centre" la vuelve a poner delante
+     imagen     el seguimiento por imagen de antes, solo con ?modo=imagen
 
    Parámetros de URL:
-     ?modo=libre | ?modo=imagen   fuerza un modo
+     ?modo=libre | giro | imagen  fuerza un modo
      ?previa=1                    la escena sin cámara, para el ordenador
-     ?mesa=1                      prueba de escritorio, la obra encogida
+     ?mesa=1                      prueba de escritorio (modo imagen), la obra encogida
      ?calibrar=1                  panel de calibración (modo imagen)
      ?capas=guia,psyche           qué capas arrancan encendidas
      ?nacer=0.4                   congela la materialización, para revisarla
@@ -26,11 +28,12 @@ import { crearGuia, crearFantasmasMarcadores } from './piece.js';
 import { HUD, Calibrador, montarEnlaces } from './ui.js';
 import { arrancarPortada } from './portada.js';
 import * as XR from './xr.js';
+import { SesionGiro, pedirPermisoGiroscopio } from './giro.js';
 
 const params = new URLSearchParams(location.search);
 const MODO_PREVIA = params.has('previa') || params.has('preview');
 const ABRIR_CALIBRACION = params.has('calibrar');
-const MODO_FORZADO = params.get('modo');          // 'libre' | 'imagen' | null
+const MODO_FORZADO = params.get('modo');          // 'libre' | 'giro' | 'imagen' | null
 const NACER_FIJO = params.has('nacer') ? parseFloat(params.get('nacer')) : null;
 
 // ?mesa=1 es el modo de prueba de escritorio: pone la cartela en el origen y
@@ -88,19 +91,6 @@ function construirObra() {
   contenido.add(asteroide.grupo);
 
   return { raiz, contenido, guia, fantasmas, campo, asteroide };
-}
-
-/* Fantasma para el modo libre: la guía en alambre, tenue, en el punto donde
-   caerá la obra si el visitante toca ahora. */
-function construirFantasmaLibre() {
-  const raiz = new THREE.Group();
-  raiz.matrixAutoUpdate = false;
-  raiz.visible = false;
-  const g = crearGuia();
-  g.scale.setScalar(ESCALA_MESA);
-  g.traverse((o) => { if (o.material) { o.material = o.material.clone(); o.material.opacity *= 0.55; } });
-  raiz.add(g);
-  return raiz;
 }
 
 /* Índice del bloque por el que pasa el pulso ahora mismo, o null. */
@@ -214,7 +204,7 @@ async function arrancarImagen() {
 }
 
 /* =========================================================================
-   MODO LIBRE — WebXR
+   MODO LIBRE — WebXR, sin marcador
    ========================================================================= */
 async function arrancarLibre() {
   const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -230,16 +220,13 @@ async function arrancarLibre() {
   scene.add(obra.raiz);
   entornoReflejos(renderer, scene);
 
-  const fantasma = construirFantasmaLibre();
-  scene.add(fantasma);
-
   const nacimiento = new Nacimiento(obra);
   const hud = new HUD({ onCapa: conectarCapas(obra), modo: 'libre' });
 
   const sesion = new XR.SesionLibre({
-    renderer, scene, raiz: obra.raiz, fantasma,
+    renderer, scene, raiz: obra.raiz,
     overlay: document.body,
-    alColocar: () => { nacimiento.empezar(); hud.mensaje('Anchored. You can now walk around it.', 2600); },
+    alColocar: () => { nacimiento.empezar(); hud.mensaje('Walk around the work.', 2600); },
   });
   sesion.alTerminar = () => {
     renderer.setAnimationLoop(null);
@@ -247,11 +234,7 @@ async function arrancarLibre() {
     document.body.classList.remove('libre');
   };
 
-  $('#btn-recolocar').addEventListener('click', () => {
-    sesion.recolocar();
-    nacimiento.set(0);
-    hud.mensaje(`Centre the ${TEXTOS.trigger} and tap the screen.`, 3000);
-  });
+  $('#btn-recolocar').addEventListener('click', () => { nacimiento.set(0); sesion.recolocar(); });
 
   await sesion.iniciar();
   document.body.classList.add('libre');
@@ -264,13 +247,59 @@ async function arrancarLibre() {
     anterior = ahora;
     const t = ahora / 1000;
 
-    const info = sesion.actualizar(frame, renderer.xr.getCamera());
+    const info = sesion.actualizar(frame);
     paso(obra, nacimiento, renderer.xr.getCamera(), renderer, dt, t, 1);
     hud.actualizar(info, info.estado === 'anclada' ? hitoActivo(obra.campo.tPaquete) : null);
     renderer.render(scene, camera);
   });
 
   window.__gs = { modo: 'libre', sesion, obra, hud };
+}
+
+/* =========================================================================
+   MODO GIRO — cámara y giroscopio, sin marcador
+   ========================================================================= */
+async function arrancarGiro() {
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.02, 60);
+  camera.position.set(0, 0, 0);
+
+  const obra = construirObra();
+  scene.add(obra.raiz);
+  entornoReflejos(renderer, scene);
+
+  const nacimiento = new Nacimiento(obra);
+  const hud = new HUD({ onCapa: conectarCapas(obra), modo: 'giro' });
+
+  const sesion = new SesionGiro({
+    contenedor: $('#ar'), renderer, camera, raiz: obra.raiz,
+    alColocar: () => { nacimiento.empezar(); },
+  });
+  $('#btn-recolocar').addEventListener('click', () => { nacimiento.set(0); sesion.recolocar(); });
+
+  await sesion.iniciar();
+  document.body.classList.add('giro');
+  $('#portada').classList.add('fuera');
+
+  let anterior = performance.now();
+  renderer.setAnimationLoop(() => {
+    const ahora = performance.now();
+    const dt = Math.min((ahora - anterior) / 1000, 0.1);
+    anterior = ahora;
+    const t = ahora / 1000;
+
+    const info = sesion.actualizar();
+    paso(obra, nacimiento, camera, renderer, dt, t, 1);
+    hud.actualizar(info, info.estado === 'giro' ? hitoActivo(obra.campo.tPaquete) : null);
+    renderer.render(scene, camera);
+  });
+
+  window.__gs = { modo: 'giro', sesion, obra, hud, camera };
 }
 
 /* =========================================================================
@@ -361,31 +390,43 @@ function prepararVariant() {
 }
 
 async function elegirModo() {
-  if (MODO_FORZADO === 'libre' || MODO_FORZADO === 'imagen') return MODO_FORZADO;
+  if (['libre', 'giro', 'imagen'].includes(MODO_FORZADO)) return MODO_FORZADO;
   if (MODO.preferido !== 'auto') return MODO.preferido;
   await prepararVariant();
-  return (await XR.soportado()) ? 'libre' : 'imagen';
+  return (await XR.soportado()) ? 'libre' : 'giro';
 }
+
+// Se decide al cargar, para que el toque en "Enter the work" pueda pedir el
+// giroscopio sin esperar a nada: iOS solo lo concede dentro del gesto.
+let modoDecidido = null;
+const modoPromesa = elegirModo().then((m) => (modoDecidido = m));
 
 async function iniciar() {
   const btn = $('#btn-entrar');
+  // Lo primero, antes de cualquier await: el permiso del giroscopio.
+  const permisoGiro = (modoDecidido === 'libre') ? Promise.resolve(true) : pedirPermisoGiroscopio();
   btn.disabled = true;
   btn.textContent = 'Opening the camera…';
   try {
-    const modo = await elegirModo();
+    const modo = modoDecidido || await modoPromesa;
     if (document.fonts) { document.fonts.load('300 72px Lato').catch(() => {}); }
     if (modo === 'libre') {
       try {
         await arrancarLibre();
         return;
       } catch (e) {
-        // Si WebXR falla (permiso denegado, ARCore ausente), caemos a imagen.
-        console.warn('[libre] no se pudo iniciar, se usa el modo imagen:', e.message);
+        // Si WebXR falla (permiso, ARCore ausente), cámara y giroscopio.
+        console.warn('[libre] no se pudo iniciar, se usa el modo giro:', e.message);
         document.body.classList.remove('libre');
       }
     }
-    await AnclajeMultiMarcador.pedirPermisoGiroscopio();
-    await arrancarImagen();
+    if (modo === 'imagen') {
+      await permisoGiro;
+      await arrancarImagen();
+      return;
+    }
+    await permisoGiro;
+    await arrancarGiro();
   } catch (e) {
     console.error(e);
     btn.disabled = false;
@@ -397,17 +438,13 @@ async function iniciar() {
   }
 }
 
-// La portada avisa de qué modo va a tocar en este móvil.
-(async () => {
-  const modo = await elegirModo();
+// La portada dice qué va a pasar en este móvil.
+modoPromesa.then((modo) => {
   const pista = $('.pista');
-  if (modo === 'libre') {
-    pista.textContent = `Centre the ${TEXTOS.trigger}, tap the screen, and walk.`;
-    $('#btn-entrar').textContent = 'Enter the work';
-  } else {
-    pista.textContent = `Point the camera at the ${TEXTOS.trigger} beside the work.`;
-  }
-})();
+  pista.textContent = modo === 'imagen'
+    ? `Point the camera at the ${TEXTOS.trigger} beside the work.`
+    : 'Stand facing the work and tap. It appears in front of you.';
+});
 
 if (MODO_PREVIA) {
   arrancarPrevia();

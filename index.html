@@ -26,19 +26,13 @@
 <!-- Welcome ------------------------------------------------------------- -->
 <section id="portada">
   <header class="cabecera">
-    <span class="kicker">Grey Spaces Exhibition</span>
-    <span class="lugar">Foundry · Downtown Dubai</span>
+    <span class="kicker">Welcome to IRIDIA</span>
+    <span class="lugar">Grey Spaces Exhibition at Foundry, Downtown Dubai</span>
   </header>
 
   <canvas id="cielo" aria-hidden="true"></canvas>
 
   <div class="marco">
-    <div class="barras" aria-hidden="true">
-      <i style="--w:74%"></i><i style="--w:48%"></i><i style="--w:91%"></i>
-      <i style="--w:36%"></i><i style="--w:63%"></i><i style="--w:82%"></i>
-      <i style="--w:29%"></i><i style="--w:57%"></i>
-    </div>
-
     <h1 id="titulo">GREY SPACES</h1>
     <p id="subtitulo"></p>
 
@@ -55,28 +49,36 @@
     </p>
 
     <button id="btn-entrar">Enter the work</button>
-    <p class="pista">Point the camera at the celestial body beside the work.</p>
+    <p class="pista">Stand facing the work and tap. It appears in front of you.</p>
     <p id="error"></p>
 
     <nav class="enlaces" aria-label="Links"></nav>
   </div>
 </section>
 
-<!-- Overlay -------------------------------------------------------------- -->
+<!-- Overlay: a viewfinder. Status top-left, iridia.world top-centre, the
+     three calls to action pinned to the bottom edge, layers bottom-right. -->
+<div class="visor" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+
 <div id="estado" class="estado buscando">
   <span class="punto"></span><span id="estado-texto">Searching</span>
 </div>
 
-<button id="btn-capas" aria-label="Layers">layers</button>
-<button id="btn-recolocar" aria-label="Place the work again">place again</button>
-<div id="capas"></div>
+<a id="cta-iridia" class="cta cta-arriba" target="_blank" rel="noopener">iridia.world</a>
 
 <div id="pie">
   <span id="pie-frec"></span>
   <strong id="pie-dato"></strong>
+  <span id="pie-luz"></span>
 </div>
 
-<nav class="enlaces enlaces-ar" aria-label="Links"></nav>
+<nav class="borde-abajo" aria-label="Links">
+  <a id="cta-artista" class="cta" target="_blank" rel="noopener">Solimán López</a>
+  <a id="cta-pdf" class="cta cta-principal" target="_blank" rel="noopener">About the work · PDF</a>
+  <button id="btn-recolocar" class="cta" aria-label="Put the work in front of you again">Centre</button>
+  <button id="btn-capas" class="cta" aria-label="Layers">Layers</button>
+</nav>
+<div id="capas"></div>
 
 <div id="aviso"></div>
 
