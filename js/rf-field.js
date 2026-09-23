@@ -63,7 +63,7 @@ export class CampoRF {
       uTiempo: { value: 0 },
       uGamma: { value: GAMMA },
       uK: { value: K_VIS },
-      uVel: { value: 2.4 },
+      uVel: { value: 3.4 },
       uOpacidad: { value: 1 },
       uPaquete: { value: -1 },   // posición del pulso, 0..1; <0 = apagado
       uNacer: { value: 1 },      // materialización, 0..1
@@ -168,11 +168,11 @@ export class CampoRF {
         void main() {
           float i = clamp(vI, 0.0, 2.0);
           vec3 c = mix(uColor, uColorAlto, smoothstep(0.75, 1.6, i));
-          gl_FragColor = vec4(c, clamp(i, 0.0, 1.0) * 0.55 * uOpacidad);
+          gl_FragColor = vec4(c, clamp(i, 0.0, 1.0) * 0.85 * uOpacidad);
         }`,
       transparent: true,
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: THREE.NormalBlending,
     });
 
     this.mallaCampo = new THREE.LineSegments(g, mat);
@@ -307,8 +307,8 @@ export class CampoRF {
       fragmentShader: /* glsl */`
         precision mediump float;
         uniform vec3 uColor; uniform float uOpacidad; varying float vI;
-        void main(){ gl_FragColor = vec4(uColor, vI * 0.30 * uOpacidad); }`,
-      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+        void main(){ gl_FragColor = vec4(uColor, vI * 0.55 * uOpacidad); }`,
+      transparent: true, depthWrite: false, blending: THREE.NormalBlending,
     });
     this.envolvente = new THREE.LineSegments(ge, me);
     this.envolvente.frustumCulled = false;
@@ -318,28 +318,135 @@ export class CampoRF {
 
   /* ---------------------------------------------------------------------
      2b. ONDA CIRCULAR
-     La onda estacionaria como lo que es alrededor de un conductor: un tubo de
-     campo cuyo radio respira. Muchos anillos a lo largo de la línea, cada uno
-     un círculo en el plano transversal, con el radio modulado por la
-     envolvente y la fase. Al recorrerla se lee desde cualquier sitio y tiene
-     profundidad: los anillos lejanos se ven pequeños y tenues, los cercanos
-     grandes, y los vientres se hinchan y viajan a lo largo del cobre.
+     La onda estacionaria como lo que es alrededor de un conductor: un tubo
+     de campo cuyo radio respira. Vista desde delante (que es desde donde la
+     mira todo el mundo) una serie de anillos se ve de canto, como rayitas;
+     por eso el tubo tiene superficie: una piel translúcida con el borde más
+     denso (fresnel), y encima los anillos. La sección no es circular: es un
+     óvalo irregular, más ancho en el eje de los dos tubos, con la
+     irregularidad del contorno de un cuerpo celeste, y respira con la
+     envolvente y la fase. Todo con mezcla normal, no aditiva, para que se
+     vea igual de macizo sobre una pared blanca que sobre una oscura.
      --------------------------------------------------------------------- */
   _ondaCircular() {
     const N = RENDIMIENTO.ondaAnillos;
     const SEG = 72;
-    const radioBase = PIEZA.separacionTubos * 0.9;
-    const amp = 0.11;
+    const radioBase = PIEZA.separacionTubos * 1.5;   // ~12 cm de radio en los nodos
+    const amp = 0.16;                                // hasta ~30 cm en los vientres
 
+    // Forma de la sección, compartida por la piel y los anillos: óvalo
+    // (más ancho en Z, el eje que une los dos tubos) e irregular, con dos
+    // armónicos que giran despacio para que no sea una forma muerta.
+    const GLSL_SECCION = /* glsl */`
+      uniform float uLargo; uniform float uRadioBase; uniform float uAmp;
+      uniform float uPaquete;
+      float radio(float xn, float ang) {
+        float e = envolvente(xn);
+        float f = fase(xn);
+        float r = uRadioBase + uAmp * e * (0.55 + 0.45 * f) * revelado(xn);
+        float irregular = 1.0
+          + 0.14 * sin(3.0 * ang + xn * 9.0 + uTiempo * 0.35)
+          + 0.07 * sin(5.0 * ang - xn * 14.0 - uTiempo * 0.22)
+          + 0.05 * sin(2.0 * ang + uTiempo * 0.5);
+        return r * irregular;
+      }
+      vec3 punto(float xn, float ang) {
+        float r = radio(xn, ang);
+        // Óvalo: 1.35 en Z (eje de los tubos), 1.0 en Y.
+        return vec3((xn - 0.5) * uLargo, sin(ang) * r * 0.85, cos(ang) * r * 1.3);
+      }
+      float intensidad(float xn) {
+        float e = envolvente(xn);
+        float f = fase(xn);
+        float i = e * (0.45 + 0.55 * abs(f)) * extremos(xn);
+        if (uPaquete >= 0.0) {
+          float d = abs(xn - uPaquete);
+          i += exp(-d * d / 0.0012) * 1.6;
+        }
+        return i;
+      }
+    `;
+
+    const uniforms = {
+      ...this.uniformes,
+      uColor: { value: new THREE.Color(PALETA.campo) },
+      uColorAlto: { value: new THREE.Color(PALETA.campoAlto) },
+      uLargo: { value: this.L },
+      uRadioBase: { value: radioBase },
+      uAmp: { value: amp },
+    };
+
+    // ---- la piel del tubo: malla N x SEG
+    const NX = Math.max(48, Math.round(N * 0.8));
+    const pos = new Float32Array(NX * SEG * 3);      // se calcula en el shader
+    const xn = new Float32Array(NX * SEG);
+    const an = new Float32Array(NX * SEG);
+    for (let i = 0; i < NX; i++) {
+      for (let k = 0; k < SEG; k++) {
+        const idx = i * SEG + k;
+        xn[idx] = i / (NX - 1);
+        an[idx] = (k / SEG) * Math.PI * 2;
+      }
+    }
+    const idxs = [];
+    for (let i = 0; i < NX - 1; i++) {
+      for (let k = 0; k < SEG; k++) {
+        const a = i * SEG + k, b = i * SEG + (k + 1) % SEG;
+        const c = a + SEG, d = b + SEG;
+        idxs.push(a, c, b, b, c, d);
+      }
+    }
+    const gp = new THREE.BufferGeometry();
+    gp.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    gp.setAttribute('aXn', new THREE.BufferAttribute(xn, 1));
+    gp.setAttribute('aAng', new THREE.BufferAttribute(an, 1));
+    gp.setIndex(idxs);
+
+    const matPiel = new THREE.ShaderMaterial({
+      uniforms,
+      vertexShader: /* glsl */`
+        attribute float aXn; attribute float aAng;
+        varying float vI; varying float vFres;
+        ${GLSL_ONDA}
+        ${GLSL_SECCION}
+        void main() {
+          vec3 p = punto(aXn, aAng);
+          // Normal aproximada por diferencias, para el fresnel.
+          vec3 pa = punto(aXn, aAng + 0.05);
+          vec3 px = punto(min(aXn + 0.01, 1.0), aAng);
+          vec3 n = normalize(cross(pa - p, px - p));
+          vec4 mv = modelViewMatrix * vec4(p, 1.0);
+          vec3 nv = normalize(normalMatrix * n);
+          vec3 v = normalize(-mv.xyz);
+          vFres = pow(1.0 - abs(dot(nv, v)), 2.2);
+          vI = intensidad(aXn);
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: /* glsl */`
+        precision mediump float;
+        uniform vec3 uColor; uniform vec3 uColorAlto; uniform float uOpacidad;
+        varying float vI; varying float vFres;
+        void main() {
+          float i = clamp(vI, 0.0, 2.0);
+          vec3 c = mix(uColor, uColorAlto, smoothstep(1.0, 1.8, i));
+          float a = (0.06 + 0.55 * vFres) * clamp(i, 0.0, 1.0);
+          gl_FragColor = vec4(c, a * uOpacidad);
+        }`,
+      transparent: true, depthWrite: false, side: THREE.DoubleSide,
+      blending: THREE.NormalBlending,
+    });
+    const piel = new THREE.Mesh(gp, matPiel);
+    piel.frustumCulled = false;
+
+    // ---- los anillos, encima de la piel
     const base = new THREE.BufferGeometry();
-    const p = [], ang = [];
+    const pl = [], ang = [];
     for (let i = 0; i < SEG; i++) {
       const t0 = (i / SEG) * Math.PI * 2, t1 = ((i + 1) / SEG) * Math.PI * 2;
-      p.push(0, Math.sin(t0), Math.cos(t0)); ang.push(t0);
-      p.push(0, Math.sin(t1), Math.cos(t1)); ang.push(t1);
+      pl.push(0, 0, 0); ang.push(t0);
+      pl.push(0, 0, 0); ang.push(t1);
     }
-    base.setAttribute('position', new THREE.Float32BufferAttribute(p, 3));
-
+    base.setAttribute('position', new THREE.Float32BufferAttribute(pl, 3));
     const g = new THREE.InstancedBufferGeometry();
     g.setAttribute('position', base.attributes.position);
     g.setAttribute('aAng', new THREE.Float32BufferAttribute(ang, 1));
@@ -348,38 +455,16 @@ export class CampoRF {
     g.setAttribute('aXn', new THREE.InstancedBufferAttribute(xs, 1));
     g.instanceCount = N;
 
-    const mat = new THREE.ShaderMaterial({
-      uniforms: {
-        ...this.uniformes,
-        uColor: { value: new THREE.Color(PALETA.campo) },
-        uColorAlto: { value: new THREE.Color(PALETA.campoAlto) },
-        uLargo: { value: this.L },
-        uRadioBase: { value: radioBase },
-        uAmp: { value: amp },
-      },
+    const matAnillos = new THREE.ShaderMaterial({
+      uniforms,
       vertexShader: /* glsl */`
-        attribute float aXn;
-        attribute float aAng;
-        uniform float uLargo; uniform float uRadioBase; uniform float uAmp;
-        uniform float uPaquete;
+        attribute float aXn; attribute float aAng;
         varying float vI;
         ${GLSL_ONDA}
+        ${GLSL_SECCION}
         void main() {
-          float e = envolvente(aXn);
-          float f = fase(aXn);
-          // El radio respira con la onda: vientres hinchados, nodos ceñidos.
-          float r = uRadioBase + uAmp * e * (0.55 + 0.45 * f) * revelado(aXn);
-          // Un ligero achatado que gira con la fase, para que el tubo no sea
-          // un cilindro muerto: la sección late.
-          r *= 1.0 + 0.08 * f * cos(2.0 * aAng + uTiempo * 0.7);
-          vec3 p = position * r;
-          p.x = (aXn - 0.5) * uLargo;
-          float i = e * (0.35 + 0.65 * abs(f)) * extremos(aXn);
-          if (uPaquete >= 0.0) {
-            float d = abs(aXn - uPaquete);
-            i += exp(-d * d / 0.0012) * 1.6;
-          }
-          vI = i;
+          vec3 p = punto(aXn, aAng);
+          vI = intensidad(aXn);
           gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
         }`,
       fragmentShader: /* glsl */`
@@ -389,13 +474,15 @@ export class CampoRF {
         void main() {
           float i = clamp(vI, 0.0, 2.0);
           vec3 c = mix(uColor, uColorAlto, smoothstep(0.9, 1.7, i));
-          gl_FragColor = vec4(c, clamp(i, 0.0, 1.0) * 0.85 * uOpacidad);
+          gl_FragColor = vec4(c, clamp(i, 0.0, 1.0) * 0.95 * uOpacidad);
         }`,
-      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      transparent: true, depthWrite: false, blending: THREE.NormalBlending,
     });
+    const anillos = new THREE.LineSegments(g, matAnillos);
+    anillos.frustumCulled = false;
 
-    this.ondaCircular = new THREE.LineSegments(g, mat);
-    this.ondaCircular.frustumCulled = false;
+    this.ondaCircular = new THREE.Group();
+    this.ondaCircular.add(piel, anillos);
     this.grupo.add(this.ondaCircular);
   }
 
@@ -460,8 +547,8 @@ export class CampoRF {
       fragmentShader: /* glsl */`
         precision mediump float;
         uniform vec3 uColor; uniform float uOpacidad; varying float vI;
-        void main(){ gl_FragColor = vec4(uColor, vI * 0.27 * uOpacidad); }`,
-      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+        void main(){ gl_FragColor = vec4(uColor, vI * 0.50 * uOpacidad); }`,
+      transparent: true, depthWrite: false, blending: THREE.NormalBlending,
     });
 
     this.radiacion = new THREE.LineSegments(g, mat);
@@ -486,12 +573,12 @@ export class CampoRF {
         opacity: 0, blending: THREE.NormalBlending,
       });
       const m = new THREE.Mesh(geo, mat);
-      const ancho = 0.28;
+      const ancho = 0.34;
       m.scale.set(ancho, ancho * (tex.image.height / tex.image.width), 1);
       const xn = PIEZA.nBloques === 1 ? 0.5 : i / (PIEZA.nBloques - 1);
       m.position.set(
         (xn - 0.5) * this.L,
-        PIEZA.bloque.alto * 0.5 + 0.20,
+        PIEZA.bloque.alto * 0.5 + 0.42,
         0
       );
       m.userData.xn = xn;
@@ -503,7 +590,7 @@ export class CampoRF {
 
     // El pulso: un halo aditivo sobre el eje, con núcleo blanco.
     const halo = new THREE.Mesh(
-      new THREE.PlaneGeometry(0.24, 0.24),
+      new THREE.PlaneGeometry(0.40, 0.40),
       new THREE.ShaderMaterial({
         uniforms: { uOpacidad: this.uniformes.uOpacidad,
                     uColor: { value: new THREE.Color(PALETA.campoAlto) },
@@ -520,7 +607,7 @@ export class CampoRF {
             vec3 c = mix(uVerde, uColor, nucleo);
             gl_FragColor = vec4(c, a * uOpacidad);
           }`,
-        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+        transparent: true, depthWrite: false, blending: THREE.NormalBlending,
       })
     );
     halo.frustumCulled = false;
@@ -576,7 +663,7 @@ export class CampoRF {
           if (d > 1.0 || vI <= 0.001) discard;
           gl_FragColor = vec4(uColor, (1.0 - d) * vI * 0.9 * uOpacidad);
         }`,
-      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      transparent: true, depthWrite: false, blending: THREE.NormalBlending,
     });
     this.estela = new THREE.Points(ge, this.matEstela);
     this.estela.frustumCulled = false;

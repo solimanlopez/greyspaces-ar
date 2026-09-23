@@ -212,7 +212,7 @@ export class Asteroide {
           base *= 0.85 + 0.15 * sin(uTiempo * 1.7);
           gl_FragColor = vec4(uColor, (base + barrido * 0.7) * uOpacidad);
         }`,
-      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      transparent: true, depthWrite: false, blending: THREE.NormalBlending,
     });
     this.aro = new THREE.Mesh(geo, this.matAro);
     this.aro.scale.setScalar(1.012);
@@ -254,7 +254,7 @@ export class Asteroide {
           a *= smoothstep(1.0, 0.72, d);
           gl_FragColor = vec4(uColor, a * 0.75 * uOpacidad);
         }`,
-      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      transparent: true, depthWrite: false, blending: THREE.NormalBlending,
     });
     this.halo = new THREE.Mesh(g, this.matHalo);
     this.halo.frustumCulled = false;
@@ -301,8 +301,8 @@ export class Asteroide {
           p.y += sin(t * 3.14159) * 0.25 * length(uOrigen) * 0.2;
           vI = smoothstep(0.0, 0.15, t) * (1.0 - smoothstep(0.82, 1.0, t));
           vec4 mv = modelViewMatrix * vec4(p, 1.0);
-          float s = (2.0 + 5.0 * vI) * uEscala / max(-mv.z, 0.001);
-          gl_PointSize = clamp(s, 1.0, 22.0);
+          float tam = (2.0 + 5.0 * vI) * uEscala / max(-mv.z, 0.001);
+          gl_PointSize = clamp(tam, 1.0, 22.0);
           gl_Position = projectionMatrix * mv;
         }`,
       fragmentShader: /* glsl */`
@@ -313,7 +313,7 @@ export class Asteroide {
           if (d > 1.0) discard;
           gl_FragColor = vec4(uColor, (1.0 - d) * vI * 0.65 * uOpacidad);
         }`,
-      transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      transparent: true, depthWrite: false, blending: THREE.NormalBlending,
     });
     this.enlace = new THREE.Points(g, this.matEnlace);
     this.enlace.frustumCulled = false;

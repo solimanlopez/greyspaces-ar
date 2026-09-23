@@ -60,7 +60,7 @@ export const SENAL = {
   // Con ROE > 1 aparecen nodos y vientres fijos sobre la línea.
   roe: 2.6,
   // Velocidad del paquete que recorre la pieza, en recorridos por segundo.
-  velocidadPaquete: 0.055,
+  velocidadPaquete: 0.13,
 };
 
 /* --------------------------------------------------------------------------
@@ -143,12 +143,13 @@ export const MARCADORES = [
    ASTEROIDE
    -------------------------------------------------------------------------- */
 export const PSYCHE = {
-  // Dónde flota, en coordenadas de pieza. En el centro de la sala: dos metros
-  // hacia el espectador desde los tubos y 1,2 m por encima de ellos, para que
-  // quede a la altura de la vista y se pueda rodear.
-  posicion: [0.0, 1.2, 2.0],
+  // Dónde flota, en coordenadas de pieza: encima de la obra, a 1,5 m sobre
+  // los tubos (altura de la vista de una persona de pie) y un poco hacia el
+  // visitante. Así, apuntando de frente a la obra, Psyche queda arriba, en
+  // el encuadre, sin tener que buscarla.
+  posicion: [0.0, 1.5, 0.35],
   // Diámetro aparente de la pieza AR, en metros.
-  diametro: 0.60,
+  diametro: 0.70,
   // Proporciones del elipsoide triaxial real de 16 Psyche (278 x 238 x 171 km).
   ejes: [1.0, 0.856, 0.615],
   // Periodo de rotación en segundos. El real es de 4,196 h; aquí se comprime
